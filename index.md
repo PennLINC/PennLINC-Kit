@@ -1,37 +1,69 @@
-## Welcome to GitHub Pages
+---
+layout: default
+title: Project Template
+parent: Documentation
+has_children: false
+has_toc: false
+nav_order: 3
+---
 
-You can use the [editor on GitHub](https://github.com/PennLINC/PennLINC-Kit/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+# Project Page Template
 
-### Markdown
+When you begin your project, use this template to fill out some critical information in the initial headers of your GitHub Pages site. Also see the [Project Setup page](https://pennlinc.github.io/docs/LabHome/ProjectSetup/).
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
-```markdown
-Syntax highlighted code block
+### Project Title
 
-# Header 1
-## Header 2
-### Header 3
+This is the toolkit of common functions used across the PennLINC labratory.
 
-- Bulleted
-- List
+### Brief Project Description
 
-1. Numbered
-2. List
+Wondering how you can write out a cifti files with a custom colormap? Want to do some machine learning? Network science? Want to do a spin-test on parcels? These common applications can be found here
 
-**Bold** and _Italic_ and `Code` text
+### Project Lead(s) 
 
-[Link](url) and ![Image](src)
-```
+Max Bertolero, the entire informatics team, and anyone who uses the code
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+### Faculty Lead(s)
 
-### Jekyll Themes
+Theodore Satterthwaite
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/PennLINC/PennLINC-Kit/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+### Analytic Replicator
 
-### Support or Contact
+The entire lab uses and validates this code
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+### Collaborators
+
+Informatics Team
+
+### Project Start Date
+
+Ealy 2021
+
+### Current Project Status
+
+We are in the early stages of building this toolkit
+
+### Dataset
+
+E.g., PNC, HBN, GRMPY, etc
+
+### Github repo
+
+https://github.com/PennLINC/PennLINC-Kit
+
+### Path to data on filesystem
+
+This will be stored in a container on PMACS and CUBIC
+
+### Slack Channel
+
+#informatics
+
+### Code documentation
+
+Graph theory metrics, functions for converting a matrix to a graph
+Create a connectome workbench surface
+Spin test on parcels
+Cross-validated prediction models  

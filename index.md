@@ -7,7 +7,7 @@ has_toc: false
 nav_order: 3
 ---
 
-### Project Title
+### PennLINC-Kit
 
 This is the toolkit of common functions used across the PennLINC labratory.
 

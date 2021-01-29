@@ -3,6 +3,7 @@ import numpy as np
 def matrix_corr(x,y):
 	"""
 	calculate the pearson r between a 1D array and a 2D array
+
 	Parameters
 	----------
 	x : 2D array

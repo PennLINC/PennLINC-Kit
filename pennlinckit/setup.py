@@ -4,18 +4,6 @@
 
 from setuptools import setup, find_packages
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
-
-requirements = [ ]
-
-setup_requirements = [ ]
-
-test_requirements = [ ]
-
 setup(
     author="Max Bertolero",
     author_email='mbertolero@me.com',
@@ -32,17 +20,13 @@ setup(
         'Programming Language :: Python :: 3.8',
     ],
     description="all the functions we use in the PennLINC",
-    install_requires=requirements,
+    install_requires=['igraph'],
     license="MIT license",
-    long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='pennlinckit',
     name='pennlinckit',
     packages=find_packages(include=['pennlinckit','pennlinckit.*']),
-    setup_requires=setup_requirements,
-    test_suite='tests',
-    tests_require=test_requirements,
-    url='https://github.com/mb3152/pennlinckit',
+    url='https://pennlinc.github.io/PennLINC-Kit/',
     version='0.1.0',
     zip_safe=False,
 )

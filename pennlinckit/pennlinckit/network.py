@@ -41,22 +41,25 @@ def part_coef(W, ci, degree='undirected'):
 
     return P
 
-def matrix_to_igraph(matrix,cost,binary=False,check_tri=True,interpolation='midpoint',normalize=False,mst=False,test_matrix=True):
+def matrix_to_igraph(matrix,cost=0.01,binary=False,check_tri=True,interpolation='midpoint',normalize=False,mst=False,test_matrix=True):
     """
     Convert a matrix to an igraph object
-    matrix: a numpy matrix
-    cost: the proportion of edges. e.g., a cost of 0.1 has 10 percent
-    of all possible edges in the graph
+    Parameters
+    ----------
+    matrix: a numpy square matrix
+    cost: the proportion of edges. e.g., a cost of 0.1 has 10 percent of all possible edges in the graph
     binary: False, convert weighted values to 1
-    check_tri: True, ensure that the matrix contains upper and low triangles.
-    if it does not, the cost calculation changes.
+    check_tri: True, ensure that the matrix contains upper and low triangles. if it does not, the cost calculation changes.
     interpolation: midpoint, the interpolation method to pass to np.percentile
-    normalize: False, make all edges sum to 1. Convienient for comparisons across subjects,
-    as this ensures the same sum of weights and number of edges are equal across subjects
-    mst: False, calculate the maximum spanning tree, which is the strongest set of edges that
-    keep the graph connected. This is convienient for ensuring no nodes become disconnected.
+    normalize: False, make all edges sum to 1. Convienient for comparisons across subjects, as this ensures the same sum of weights and number of edges are equal across subjects
+    mst: False, calculate the maximum spanning tree, which is the strongest set of edges that keep the graph connected. This is convienient for ensuring no nodes become disconnected.
+
+    Returns
+    -------
+    out : igraph graph object
     """
     matrix = np.array(matrix)
+    assert matrix.shape[0] == matrix.shape[1]
     matrix = threshold(matrix,cost,binary,check_tri,interpolation,normalize,mst)
     g = Graph.Weighted_Adjacency(matrix.tolist(),mode=ADJ_UNDIRECTED,attr="weight")
     # print ('Matrix converted to graph with density of: ' + str(g.density()))
@@ -64,20 +67,23 @@ def matrix_to_igraph(matrix,cost,binary=False,check_tri=True,interpolation='midp
         print ('Density not %s! Did you want: ' %(cost)+ str(g.density()) + ' ?')
     return g
 
-def threshold(matrix,cost,binary=False,check_tri=True,interpolation='midpoint',normalize=False,mst=False,test_matrix=True):
+def threshold(matrix,cost=0.01,binary=False,check_tri=True,interpolation='midpoint',normalize=False,mst=False,test_matrix=True):
     """
     Threshold a numpy matrix to obtain a certain "cost".
+    Parameters
+    ----------
     matrix: a numpy matrix
-    cost: the proportion of edges. e.g., a cost of 0.1 has 10 percent
-    of all possible edges in the graph
+    cost: the proportion of edges. e.g., a cost of 0.1 has 10 percent of all possible edges in the graph
     binary: False, convert weighted values to 1
-    check_tri: True, ensure that the matrix contains upper and low triangles.
-    if it does not, the cost calculation changes.
+    check_tri: True, ensure that the matrix contains upper and low triangles. if it does not, the cost calculation changes.
     interpolation: midpoint, the interpolation method to pass to np.percentile
-    normalize: False, make all edges sum to 1. Convienient for comparisons across subjects,
-    as this ensures the same sum of weights and number of edges are equal across subjects
-    mst: False, calculate the maximum spanning tree, which is the strongest set of edges that
-    keep the graph connected. This is convienient for ensuring no nodes become disconnected.
+    normalize: False, make all edges sum to 1. Convienient for comparisons across subjects, as this ensures the same sum of weights and number of edges are equal across subjects
+    mst: False, calculate the maximum spanning tree, which is the strongest set of edges that keep the graph connected. This is convienient for ensuring no nodes become disconnected.
+
+    Returns
+    -------
+    out : thresholded matrix (NOT A COPY)
+
     """
     matrix[np.isnan(matrix)] = 0.0
     matrix[matrix<0.0] = 0.0

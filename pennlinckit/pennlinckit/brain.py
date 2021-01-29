@@ -5,6 +5,19 @@ import copy
 import pandas as pd
 
 def cut_data(data,min_cut=1.5,max_cut=1.5):
+	"""
+	remove outlier so your colorscale is not driven by one or two large values
+
+    Parameters
+    ----------
+    data: the data you want to cut
+    min_cut: std cutoff for low values
+    max_cut: std cutoff for high values
+	
+    Returns
+    -------
+    out : cut data
+	"""
 	d = data.copy()
 	max_v = np.mean(d) + np.std(d)*max_cut
 	min_v = np.mean(d) - np.std(d)*min_cut
@@ -13,6 +26,17 @@ def cut_data(data,min_cut=1.5,max_cut=1.5):
 	return d
 
 def make_heatmap(data,cmap='stock'):
+	"""
+	Generate an RGB value for each value in "data"
+
+    Parameters
+    ----------
+    data: the data you want to colormap
+    cmap: nicegreen, nicepurp, stock, Reds, or send your own seaborn color_palette / cubehelix_palette object
+    Returns
+    -------
+    out : RGB values
+	"""
 	if cmap == 'nicegreen': orig_colors = sns.cubehelix_palette(1001, rot=-.5, dark=.3)
 	elif cmap == 'nicepurp': orig_colors = sns.cubehelix_palette(1001, rot=.5, dark=.3)
 	elif cmap == 'stock': orig_colors = sns.color_palette("RdBu_r",n_colors=1001)
@@ -29,7 +53,19 @@ def make_heatmap(data,cmap='stock'):
 		colors.append(orig_colors[d])
 	return colors
 
-def write_cifti(atlas_path,out_path,colors):
+def write_cifti(colors,atlas_path,out_path):
+	"""
+	You have data, you want it on the brain
+    
+    Parameters
+    ----------
+    colors: RGB valus for each parcel
+    atlas_path: the cifti file you are basing this on
+    out_path: what you want to call it! 
+    Returns
+    -------
+    out : out_path.dlabel file to open on connectome_wb
+	"""
 	os.system('wb_command -cifti-label-export-table %s 1 temp.txt'%(atlas_path))
 	df = pd.read_csv('temp.txt',header=None)
 	for i in range(df.shape[0]):

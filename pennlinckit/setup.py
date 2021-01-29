@@ -4,6 +4,9 @@
 
 from setuptools import setup, find_packages
 
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 setup(
     author="Max Bertolero",
     author_email='mbertolero@me.com',

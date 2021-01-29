@@ -41,7 +41,7 @@ We are in the early stages of building this toolkit
 
 ### Dataset
 
-E.g., PNC, HBN, GRMPY, etc
+All the data
 
 ### Github repo
 
@@ -57,7 +57,27 @@ This will be stored in a container on PMACS and CUBIC
 
 ### Code documentation
 
+Python module for loading data
+Object oriented, using read-only matrix loading:
+import pennlinc_data
+for dataset in [‘pic’,’abcd’]:
+  data = pennlinc_data.load(dataset)
+  matrices = data.matrices
+  ef = data.behavior['ef']
+  motion = data.qc['mean_FD']
+  #analysis here
+
+Python module to analyze data
 Graph theory metrics, functions for converting a matrix to a graph
 Create a connectome workbench surface
 Spin test on parcels
-Cross-validated prediction models  
+Cross-validated prediction models
+
+Anaconda container and defaults 
+Install useful libs that we should use 
+Good defaults for font, colors
+
+Notebooks
+PMACS “quirks” / SGE / multiprocessing
+How to make a plot look good
+How to analyze citation balance in your .bib

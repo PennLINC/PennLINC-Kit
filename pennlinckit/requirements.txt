@@ -1,2 +1,2 @@
-igraph==python-igraph 0.8.3
+python-igraph>=0.8.3
 

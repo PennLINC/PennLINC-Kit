@@ -23,7 +23,7 @@ setup(
         'Programming Language :: Python :: 3.8',
     ],
     description="all the functions we use in the PennLINC",
-    install_requires=required,
+    install_requires=[required],
     license="MIT license",
     include_package_data=True,
     keywords='pennlinckit',

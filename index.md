@@ -58,13 +58,21 @@ This will be stored in a container on PMACS and CUBIC
 ### Code documentation
 
 Python module for loading data
+
 Object oriented, using read-only matrix loading:
+
 import pennlinc_data
+
 for dataset in [‘pic’,’abcd’]:
+
   data = pennlinc_data.load(dataset)
+  
   matrices = data.matrices
+
   ef = data.behavior['ef']
+  
   motion = data.qc['mean_FD']
+  
   #analysis here
 
 Python module to analyze data

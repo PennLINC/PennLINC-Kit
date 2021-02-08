@@ -1,15 +1,5 @@
 LICENSE
 setup.py
-docs/Makefile
-docs/authors.rst
-docs/conf.py
-docs/contributing.rst
-docs/history.rst
-docs/index.rst
-docs/installation.rst
-docs/make.bat
-docs/readme.rst
-docs/usage.rst
 pennlinckit/__init__.py
 pennlinckit/brain.py
 pennlinckit/math.py

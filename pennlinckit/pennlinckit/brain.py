@@ -2,7 +2,15 @@ import seaborn as sns
 import numpy as np
 import os
 import copy
+import scipy.io
 import pandas as pd
+import pkg_resources
+
+def spin_test(data,hemi='lh',parcels='Schaefer400'):
+	resource_package = 'pennlinckit'
+	resource_path = '/'.join(('data', '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)))
+	mat_file = scipy.io.loadmat(pkg_resources.resource_stream(resource_package, resource_path))
+	hemi_dist = mat_file['%s_dist'%(hemi)]
 
 def cut_data(data,min_cut=1.5,max_cut=1.5):
 	"""

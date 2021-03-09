@@ -52,7 +52,7 @@ class dataset:
 			matrices = []
 			for m in matrix_paths:
 				try: m = np.load(m)
-				except: m = np.loadtxt(m)
+				except: m = np.loadtxt(m) 
 				if self.subcortex == False:
 					m = m[:400,:400]
 				np.fill_diagonal(m,0.0) #so we don't get archtanh error

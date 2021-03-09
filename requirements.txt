@@ -1,2 +1,2 @@
 python-igraph>=0.8.3
-
+nilearn>=0.7.0   

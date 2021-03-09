@@ -8,6 +8,46 @@ import pkg_resources
 import nibabel as nib
 import numpy.linalg as npl
 import math
+import nilearn.plotting
+
+
+def vol2fslr(volume,out):
+	resource_package = 'pennlinckit'
+	resource_path = 'Q1-Q6_R440.HEMI.SURFACE.32k_fs_LR.surf.gii'
+	file = pkg_resources.resource_filename(resource_package, resource_path)
+	lh_inflated = file.replace('HEMI','L').replace('SURFACE','inflated')
+	rh_inflated = file.replace('HEMI','R').replace('SURFACE','inflated')
+	lh_pial = file.replace('HEMI','L').replace('SURFACE','pial')
+	rh_pial = file.replace('HEMI','R').replace('SURFACE','pial')
+	lh_white = file.replace('HEMI','L').replace('SURFACE','white')
+	rh_white = file.replace('HEMI','R').replace('SURFACE','white')
+
+	left_command = "wb_command -volume-to-surface-mapping %s \
+	%s.L.func.gii \
+	-ribbon-constrained %s %s \
+	-interpolate ENCLOSING_VOXEL -thin-columns" %(lh_inflated,out,lh_white,lh_pial)
+
+
+	right_command = "wb_command -volume-to-surface-mapping %s\
+	%s.R.func.gii\
+	-ribbon-constrained %s %s\
+	-interpolate ENCLOSING_VOXEL -thin-columns" %(rh_inflated,out,rh_white,rh_pial)
+
+	os.system(left_command)
+	os.system(right_command)
+
+def view_surf(surf,hemi='left'):
+	resource_package = 'pennlinckit'
+	resource_path = 'Q1-Q6_R440.HEMI.SURFACE.32k_fs_LR.surf.gii'
+	file = pkg_resources.resource_filename(resource_package, resource_path)
+	if hemi == 'left': inflated = file.replace('HEMI','L').replace('SURFACE','inflated')
+	if hemi == 'right': inflated = file.replace('HEMI','R').replace('SURFACE','inflated')
+	nilearn.plotting.view_surf(inflated,surf)
+
+def view_nifti(path):
+	nifti = nib.load(path)
+	nifti_data = nifti.get_fdata()
+	nib.viewers.OrthoSlicer3D(nifti_data,nifti.affine)
 
 def yeo_partition(n_networks=17,parcels='Schaefer400'):
 	if parcels=='Schaefer400': resource_path = 'Schaefer2018_400Parcels_17Networks_order_info.txt'
@@ -89,7 +129,7 @@ def make_heatmap(data,cmap='stock'):
 		colors.append(orig_colors[d])
 	return colors
 
-def write_cifti(colors,atlas_path,out_path):
+def write_cifti(colors,out_path,parcels='Schaefer400'):
 	"""
 	You have data, you want it on the brain
 
@@ -102,6 +142,10 @@ def write_cifti(colors,atlas_path,out_path):
     -------
     out : out_path.dlabel file to open on connectome_wb
 	"""
+	if parcels=='Schaefer400':
+		resource_path = 'Schaefer2018_400Parcels_17Networks_order.dlabel.nii'
+		resource_package = 'pennlinckit'
+		atlas_path = pkg_resources.resource_stream(resource_package, resource_path).name
 	os.system('wb_command -cifti-label-export-table %s 1 temp.txt'%(atlas_path))
 	df = pd.read_csv('temp.txt',header=None)
 	for i in range(df.shape[0]):

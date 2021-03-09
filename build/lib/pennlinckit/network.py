@@ -1,6 +1,11 @@
 import numpy as np
-from igraph import Graph, ADJ_UNDIRECTED
+from igraph import Graph, ADJ_UNDIRECTED, VertexClustering
 from scipy.sparse.csgraph import minimum_spanning_tree
+import pennlinckit.brain
+from multiprocessing import Pool
+from functools import partial
+from itertools import repeat
+
 
 def part_coef(W, ci, degree='undirected'):
     '''
@@ -110,3 +115,61 @@ def threshold(matrix,cost=0.01,binary=False,check_tri=True,interpolation='midpoi
     if normalize == True:
         matrix = matrix/np.sum(matrix)
     return matrix
+
+def metrics(make_networks,data,i):
+	m = data.matrix[i]
+	graphs = []
+	q = np.zeros((len(make_networks.costs)))
+	pc = np.zeros((len(make_networks.costs),m.shape[0]))
+	strength = np.zeros((len(make_networks.costs),m.shape[0]))
+	for idx,cost in enumerate(make_networks.costs):
+		graph = matrix_to_igraph(m.copy(), cost, binary=make_networks.binary, normalize=make_networks.normalize, mst=make_networks.mst)
+		if make_networks.yeo_partition:
+			vc = VertexClustering(graph,membership=make_networks.membership ,modularity_params={'weights':'weight'})
+			pc[idx] = part_coef(np.array(graph.get_adjacency(attribute='weight').data),make_networks.membership)
+		else:
+			vc = graph.community_infomap(edge_weights='weight')
+			pc[idx] = part_coef(np.array(graph.get_adjacency(attribute='weight').data),vc.membership)
+		q[idx] = vc.modularity
+		strength[idx] = vc.graph.strength(weights='weight')
+		graphs.append(vc)
+	return graphs,q,pc,strength
+
+class make_networks:
+	def __init__(self,data,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
+		self.costs = costs
+		self.yeo_partition = yeo_partition
+		self.binary = binary
+		self.sym = sym
+		self.normalize = normalize
+		self.mst = mst
+		if self.sym == True:
+			for m in range(data.matrix.shape[0]):
+				data.matrix[m] = data.matrix[m]+ data.matrix[m].transpose()
+				data.matrix[m] = np.tril(data.matrix[m],-1)
+				data.matrix[m] = data.matrix[m] + data.matrix[m].transpose()
+				data.matrix[m] = data.matrix[m] / 2.
+		if self.yeo_partition != False:
+			self.membership = pennlinckit.brain.yeo_partition(int(self.yeo_partition))[1]
+
+		self.graphs = []
+		self.pc = []
+		self.strength = []
+		self.modularity = []
+		pool = Pool(cores)
+		for r in pool.starmap(metrics, zip(repeat(self),repeat(data),range(data.matrix.shape[0]))):
+			# return graphs,q,pc,strength
+			self.graphs.append(r[0])
+			self.modularity.append(r[1])
+			self.pc.append(r[2])
+			self.strength.append(r[3])
+
+		self.pc = np.array(self.pc)
+		self.strength = np.array(self.strength)
+		self.modularity = np.array(self.modularity)
+		self.yeo_partition = yeo_partition
+		self.binary = binary
+		self.normalize = normalize
+		self.mst = mst
+		self.costs = costs
+		data.networks = self

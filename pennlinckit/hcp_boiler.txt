@@ -1,0 +1,10 @@
+The Resting-state, Working Memory, Language and Math, Relational, Social Cognition, Emotion, Gambling, and Motor fMRI scans from the S1200 Human Connectome Project release were analyzed. 
+Brains were normalized to fslr32k via the MSM-AII registration.
+CompCor, with five principal components from the ventricles and white matter masks, was used to regress out nuisance signals from the time series.
+In addition, the 12 detrended motion estimates provided by the Human Connectome Project were regressed out from the regional time series.
+The mean global signal was removed and then time series were band- pass filtered from 0.009 to 0.08 Hz.
+Finally, frames with greater than 0.2 mm frame-wise displacement or a derivative root mean square (DVARS) above 75 were removed as outliers.
+Segments of less than five uncensored time points were also removed. Sessions composed of greater than 50 percent outlier frames were not further analyzed.
+Parcels: made using: https://github.com/ThomasYeoLab/CBIG/blob/master/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/HCP/fslr32k/cifti/Schaefer2018_400Parcels_17Networks_order.dlabel.nii
+Subcortex is from node 401-416: https://github.com/yetianmed/subcortex
+Please each out to max bertolero (mbertolero@me.com) if you publish using this data.

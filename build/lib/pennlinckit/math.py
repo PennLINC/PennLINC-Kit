@@ -7,7 +7,7 @@ def matrix_corr(x,y):
 	Parameters
 	----------
 	x : 2D array
-	y : 1D array 
+	y : 1D array
 
 	Returns
 	-------
@@ -20,3 +20,9 @@ def matrix_corr(x,y):
 	r_den = np.sqrt(np.sum((x-xm)**2,axis=1)*np.sum((y-ym)**2))
 	r = r_num/r_den
 	return r
+
+def make_dnn_structure(neurons = 80,layers = 10):
+	neurons_array = np.zeros((layers))
+	neurons_array[:] = neurons
+	neurons_array = tuple(neurons_array.astype(int))
+	return neurons_array

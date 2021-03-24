@@ -25,13 +25,13 @@ def vol2fslr(volume,out):
 	left_command = "wb_command -volume-to-surface-mapping %s \
 	%s.L.func.gii \
 	-ribbon-constrained %s %s \
-	-interpolate ENCLOSING_VOXEL -thin-columns" %(lh_inflated,out,lh_white,lh_pial)
+	-interpolate ENCLOSING_VOXEL -thin-columns" %(volume,out,lh_white,lh_pial)
 
 
 	right_command = "wb_command -volume-to-surface-mapping %s\
 	%s.R.func.gii\
 	-ribbon-constrained %s %s\
-	-interpolate ENCLOSING_VOXEL -thin-columns" %(rh_inflated,out,rh_white,rh_pial)
+	-interpolate ENCLOSING_VOXEL -thin-columns" %(volume,out,rh_white,rh_pial)
 
 	os.system(left_command)
 	os.system(right_command)

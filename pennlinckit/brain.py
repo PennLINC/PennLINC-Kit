@@ -25,7 +25,7 @@ def vol2fslr(volume,out,roi=False):
 	lh_white = file.replace('HEMI','L').replace('SURFACE','white')
 	rh_white = file.replace('HEMI','R').replace('SURFACE','white')
 
-	if roi == True: 
+	if roi == True:
 		right_command = "wb_command -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
 		-ribbon-constrained %s %s \
@@ -42,6 +42,16 @@ def vol2fslr(volume,out,roi=False):
 		left_command = "wb_command -volume-to-surface-mapping %s %s \
 		%s.L.func.gii \
 		-ribbon-constrained %s %s" %(volume,lh_inflated,out,lh_white,lh_pial)
+	left_command = "wb_command -volume-to-surface-mapping %s \
+	%s.L.func.gii \
+	-ribbon-constrained %s %s \
+	-interpolate ENCLOSING_VOXEL -thin-columns" %(volume,out,lh_white,lh_pial)
+
+
+	right_command = "wb_command -volume-to-surface-mapping %s\
+	%s.R.func.gii\
+	-ribbon-constrained %s %s\
+	-interpolate ENCLOSING_VOXEL -thin-columns" %(volume,out,rh_white,rh_pial)
 
 	os.system(left_command)
 	os.system(right_command)

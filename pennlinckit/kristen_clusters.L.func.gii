@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GIFTI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="http://brainvis.wustl.edu/caret6/xml_schemas/GIFTI_Caret.xsd"
+       Version="1"
+       NumberOfDataArrays="1">
+   <MetaData>
+      <MD>
+         <Name><![CDATA[AnatomicalStructurePrimary]]></Name>
+         <Value><![CDATA[CortexLeft]]></Value>
+      </MD>
+      <MD>
+         <Name><![CDATA[ParentProvenance]]></Name>
+         <Value><![CDATA[/home/mb3152/anaconda3/lib/python3.8/site-packages/pennlinckit-0.1.0-py3.8.egg/pennlinckit/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii:
+/NRG/BlueArc/nrgpackages/tools/hcp-pipeline-tools/global/binaries/caret7/bin_rh_linux64/../exe_rh_linux64/wb_command -surface-resample /HCP/hcpdb/build_ssd/chpc/BUILD/HCP_Staging/1396060669_100307/STRUCTURAL//100307/MNINonLinear/Native/100307.L.midthickness.native.surf.gii /HCP/hcpdb/build_ssd/chpc/BUILD/HCP_Staging/1396060669_100307/STRUCTURAL//100307/MNINonLinear/Native/100307.L.sphere.MSMSulc.native.surf.gii /HCP/hcpdb/build_ssd/chpc/BUILD/HCP_Staging/1396060669_100307/STRUCTURAL//100307/MNINonLinear/fsaverage_LR32k/100307.L.sphere.32k_fs_LR.surf.gii BARYCENTRIC /HCP/hcpdb/build_ssd/chpc/BUILD/HCP_Staging/1396060669_100307/STRUCTURAL//100307/MNINonLinear/fsaverage_LR32k/100307.L.midthickness.32k_fs_LR.surf.gii
+
+]]></Value>
+      </MD>
+      <MD>
+         <Name><![CDATA[ProgramProvenance]]></Name>
+         <Value><![CDATA[Connectome Workbench
+Type: Command Line Application
+Version: 1.4.2
+Qt Compiled Version: 5.7.0
+Qt Runtime Version: 5.7.0
+Commit: 092b7f2f7dfab0f9ea7cbb6c1db2e5dffd2c1045
+Commit Date: 2020-01-07 17:24:23 -0600
+Compiled with OpenMP: YES
+Compiler: g++ (/export/gcc-4.8.5/bin)
+Compiler Version: 4.8.5
+Compiled Debug: NO
+Operating System: Linux
+]]></Value>
+      </MD>
+      <MD>
+         <Name><![CDATA[Provenance]]></Name>
+         <Value><![CDATA[/misc/appl/workbench-1.4.2/bin_rh_linux64/../exe_rh_linux64/wb_command -volume-to-surface-mapping /home/mb3152/helping/kristen/13_cluster_mask_MNI.nii /home/mb3152/anaconda3/lib/python3.8/site-packages/pennlinckit-0.1.0-py3.8.egg/pennlinckit/Q1-Q6_R440.L.inflated.32k_fs_LR.surf.gii kristen_clusters.L.func.gii -enclosing]]></Value>
+      </MD>
+      <MD>
+         <Name><![CDATA[WorkingDirectory]]></Name>
+         <Value><![CDATA[/home/mb3152/PennLINC-Kit/pennlinckit]]></Value>
+      </MD>
+   </MetaData>
+   <LabelTable>
+      <Label Key="0" Red="1" Green="1" Blue="1" Alpha="0"><![CDATA[???]]></Label>
+   </LabelTable>
+<DataArray Intent="NIFTI_INTENT_NORMAL"
+           DataType="NIFTI_TYPE_FLOAT32"
+           ArrayIndexingOrder="RowMajorOrder"
+           Dimensionality="1"
+           Dim0="32492"
+           Encoding="GZipBase64Binary"
+           Endian="LittleEndian"
+           ExternalFileName=""
+           ExternalFileOffset="0">
+   <MetaData>
+      <MD>
+         <Name><![CDATA[Name]]></Name>
+         <Value><![CDATA[ enclosing voxel]]></Value>
+      </MD>
+   </MetaData>
+   <Data>eJzt3Wtu2zoQhmEvoUvoUqwddP+/upTWaIkIiijxMlfqfQAiOT4W5xuRTpU4sV+vM+/t9GZI23YDAACo+LF9fSwjk33uTPmz5v7InjuLTFkBAAAAAKj5tfUPxLHiuq20J0d6oSc79BFP9j7Ibi/jniFvnKxZ8pJxPp9HRu9ctbkj5DrW8co08jVDK89sFolMUhmi5PDO4FXbou+r+1rWLLdp1Gy5v1Rdi1o9eXrq3R0nsWZ3x0qcq6tcko+tWu2ZOWezSeXRJJEryhxY3+fvl8rfMJXPJceTWFz77EmuUdR1W3HvSa1TRCusT9GyFhmd5c7aCwAAAAAAT3D2vFz5ePacZMt8veN4rMScI889Mp45zvZF7fFxt1cRS8u6w17m87/i14Sz3NkfL7Wv7Vl7KnlrfWTqZ5X1OLtWyNBLbf9E30tX+ybyee+9FvXKePw8S+aWvN5qj7NoWTOsfcu/7d75op2/1kzW2SLl6s2ilWk0h0ae2SxSecjgW99zH2SpOSv6ekato11Dc36tfa2VuXUOiflaWfUmde5Hs/Q4O3ak9mjN3mN67g87Gn/Xs8Lv94+y7G/ltbPsZbW+LNFP3F40e8rahyfy59w7njJmzpQ7477IkDNDxp6sEUTPVj5GyvURLQ8AAADWt7/+5HoUka28P1ftC8js9/vfyKrkz9rDPn/WPkrmTNkznu+MmQEAAAAAADxJ/Z0sAACAtOjXJD2vXeFxjTX6WiDSr/HRmlErt1Q+ySySOTXOTet9R14DRGrNJNfecg/NHi/xuNvPPXOsdJ5Z0fIAAAAANVKvdxP1NRtWsPLarNjXiuu1z7FCP8Vq65O9n+yPHfL75Ce3TWaN86yZO0veJ+d8Usao66yVazabZq7RbE/K05spQhbtDC05PDN41LaoeaxrXXPFela1rGto1CtzHvegRK0r0eaVnlNyvru5WudsoT3HzPGjx7Yetz++R+/9kcPoXspgtd5mv+ZEtFpPq/Qj8W9kBBLXMMd5NLNe5ejpoedaqaWn1vsc5x25Zms9rqUPifPUml1zLqkatT2tNazqMBgMBoPBYGQbGtemvfWk6o/Snv+sVq3+/jZpkn1Yz59tXgAAAAAAAAAAAABrOD6fe/Xf0s8vAwAAAAAAAAAARDb73n2S72XY+n6ZUjTe4zEC+srDqyer9zi16EfjPVst+5B8L9zWuaVp9lCbX5LlGmjQyB5l/0vMFzlzhMfozFxaJLNqy5Kz1JnZpxYsa42InA0ovPbp/vFb+9yivsa1aOT6HnU1r51Ha0nU7K01Wm+kjtQ1pneNp88rOV8rq3kk+9PsR+M8jB430qvE/OX23hyj/x8AAAAAAAAAAAAAPn5ufePseAAAAADIgu9h2kU5V1ffk3pk8a5/9326dYYn1S/1POrva3md9wxzXtWq/VxLKsfdz88k6tRqaO9JzfktsgPfvA2OGakBAADCifLziFH772MzifSzoFatv18RRe/vhXjKknXk9208RM8Y/TzW8njnKhminbOIaxkhQ+Q8RYQs3hki7FPo8Xh+yaqmVS32KAAAAAAAf23/x/HzSI65jpm9bRfj9fqe3dpVvrP1t9oHLbnuMj8h10p5ouSQzBIhR+0xbJXBq/8sdV8vm5oSdVprSjvu4f1tUPdWOtda8wIAAAAAAAAAAADIZf/e9iMDgI3VHm8rfA1ZpYfMsufPKOM5z/ZYzXSdlSVrloyRRV7ryLkAAACAp1rteYd9ptneovUn0U+EvqTXyLsnyR7ohT40e7DsQyu/RQ9Zs2vm1sqeLbN2XsnMGTJmySmVo/a5Zr6zume3a+lZG4s8AAAAwJnWa9G7+11db/d+n3J13c61MwAAAAAAAAAA+PIHWthOTA==</Data>
+</DataArray>
+</GIFTI>

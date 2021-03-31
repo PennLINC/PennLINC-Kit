@@ -1,5 +1,10 @@
 import numpy as np
 from scipy.stats import pearsonr
+from sklearn.linear_model import RidgeCV
+from sklearn.model_selection import KFold
+from sklearn.neural_network import MLPRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+
 def matrix_corr(x,y):
 	"""
 	calculate the pearson r between a 1D array and a 2D array
@@ -52,3 +57,37 @@ def matrix_triu(n_nodes=400):
 
 def matrix_tril(n_nodes=400):
 	return np.tril_indices(n_nodes,-1)
+
+def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_linear_vars=False,remove_cat_vars=False):
+	if cv == 'KFold':
+		model_cv = KFold(folds)
+	self.prediction = np.zeros((self.measures.subject.values.shape[0]))
+	self.corrected_targets = self.targets.copy()
+	for train, test in model_cv.split(self.measures.subject.values):
+		x_train,y_train,x_test,y_test = self.features[train].copy(),self.targets[train].copy(),self.features[test].copy(),self.targets[test].copy()
+		if type(remove_linear_vars) != bool:
+			nuisance_model = LinearRegression()
+			nuisance_model.fit(self.measures[remove_linear_vars].values[train],y_train)
+			y_train = y_train - nuisance_model.predict(self.measures[remove_linear_vars].values[train])
+			y_test = y_test - nuisance_model.predict(self.measures[remove_linear_vars].values[test])
+		if type(remove_cat_vars) != bool:
+			nuisance_model = LogisticRegression()
+			nuisance_model.fit(self.measures[remove_linear_vars].values[train],y_train)
+			y_train = y_train - nuisance_model.predict(self.measures[remove_cat_vars].values[train])
+			y_test = y_test - nuisance_model.predict(self.measures[remove_cat_vars].values[test])
+		if model == 'ridge':
+			m = RidgeCV()
+		if model == 'deep':
+			m = MLPRegressor(hidden_layer_sizes=make_dnn_structure(neurons,layers))
+		m.fit(x_train,y_train)
+		self.prediction[test] = m.predict(x_test)
+		self.corrected_targets[test] = y_test
+                   
+def remove(remove_me,y,data_type='linear'):
+	if data_type == 'linear': model = LinearRegression()
+	if data_type == 'categorical': model = LogisticRegression()
+	y_model = model.fit(remove_me,y)
+	y_predict = y_model.predict(remove_me) # predicted values
+	y_residual =  y - y_predict # residual values
+	return y_residual
+

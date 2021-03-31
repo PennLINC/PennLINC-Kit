@@ -6,7 +6,8 @@ import pkg_resources
 import glob
 import os
 
-matplotlib.use('TkAgg')
+try: matplotlib.use('TkAgg')
+except: matplotlib.use('nbagg')
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 plt.rcParams['font.sans-serif'] = "Palatino"

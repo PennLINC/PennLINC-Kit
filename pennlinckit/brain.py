@@ -9,9 +9,12 @@ import nibabel as nib
 import numpy.linalg as npl
 import math
 import nilearn.plotting
+import brainsmash.mapgen.base
+import brainsmash.mapgen.stats
+from scipy.stats import pearsonr
 
 
-def vol2fslr(volume,out):
+def vol2fslr(volume,out,roi=False):
 	resource_package = 'pennlinckit'
 	resource_path = 'Q1-Q6_R440.HEMI.SURFACE.32k_fs_LR.surf.gii'
 	file = pkg_resources.resource_filename(resource_package, resource_path)
@@ -22,16 +25,23 @@ def vol2fslr(volume,out):
 	lh_white = file.replace('HEMI','L').replace('SURFACE','white')
 	rh_white = file.replace('HEMI','R').replace('SURFACE','white')
 
-	left_command = "wb_command -volume-to-surface-mapping %s \
-	%s.L.func.gii \
-	-ribbon-constrained %s %s \
-	-interpolate ENCLOSING_VOXEL -thin-columns" %(lh_inflated,out,lh_white,lh_pial)
+	if roi == True: 
+		right_command = "wb_command -volume-to-surface-mapping %s %s \
+		%s.R.func.gii \
+		-ribbon-constrained %s %s \
+		-volume-roi %s" %(volume,rh_inflated,out,rh_white,rh_pial,volume)
+		left_command = "wb_command -volume-to-surface-mapping %s %s \
+		%s.L.func.gii \
+		-ribbon-constrained %s %s \
+		-volume-roi %s"%(volume,lh_inflated,out,lh_white,lh_pial,volume)
 
-
-	right_command = "wb_command -volume-to-surface-mapping %s\
-	%s.R.func.gii\
-	-ribbon-constrained %s %s\
-	-interpolate ENCLOSING_VOXEL -thin-columns" %(rh_inflated,out,rh_white,rh_pial)
+	if roi == False:
+		right_command = "wb_command -volume-to-surface-mapping %s %s \
+		%s.R.func.gii \
+		-ribbon-constrained %s %s" %(volume,rh_inflated,out,rh_white,rh_pial)
+		left_command = "wb_command -volume-to-surface-mapping %s %s \
+		%s.L.func.gii \
+		-ribbon-constrained %s %s" %(volume,lh_inflated,out,lh_white,lh_pial)
 
 	os.system(left_command)
 	os.system(right_command)
@@ -74,11 +84,26 @@ def yeo_partition(n_networks=17,parcels='Schaefer400'):
 
 	return membership,membership_ints,names
 
-def spin_test(data,hemi='lh',parcels='Schaefer400'):
-	resource_package = 'pennlinckit'
-	resource_path = '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)
-	mat_file = scipy.io.loadmat(pkg_resources.resource_stream(resource_package, resource_path))
-	hemi_dist = mat_file['%s_dist'%(hemi)]
+def spin_test(map1,map2,parcels='Schaefer400',n=1000):
+    if parcels == 'Schaefer400': split = 200 #where the right hemi starts
+    resource_package = 'pennlinckit'
+    resource_path = '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)
+    mat_file = scipy.io.loadmat(pkg_resources.resource_stream(resource_package, resource_path))
+    lh_gen = brainsmash.mapgen.base.Base(map2[:split], D= mat_file['lh_dist'])
+    lh_maps = lh_gen(n=n)
+    rh_gen = brainsmash.mapgen.base.Base(map2[split:], D= mat_file['rh_dist'])
+    rh_maps = rh_gen(n=n)
+    maps = np.append(lh_maps,rh_maps,axis=1)
+    assert (lh_maps[0] == maps[0,:200]).all()
+    return brainsmash.mapgen.stats.pearsonr(map1,maps)[0]
+
+def spin_stat(map1,map2,spincorrs):
+    real_r = pearsonr(map1,map2)[0]
+    if real_r >= 0.0:
+        smash_p = len(spincorrs[spincorrs>real_r])/float(len(spincorrs))
+    else:
+        smash_p = len(spincorrs[spincorrs<real_r])/float(len(spincorrs))
+    return smash_p
 
 def cut_data(data,min_cut=1.5,max_cut=1.5):
 	"""
@@ -129,7 +154,7 @@ def make_heatmap(data,cmap='stock'):
 		colors.append(orig_colors[d])
 	return colors
 
-def write_cifti(colors,out_path,parcels='Schaefer400'):
+def write_cifti(colors,out_path,parcels='Schaefer400',wb_path='/appl/workbench-1.4.2/bin_rh_linux64/wb_command'):
 	"""
 	You have data, you want it on the brain
 
@@ -146,7 +171,7 @@ def write_cifti(colors,out_path,parcels='Schaefer400'):
 		resource_path = 'Schaefer2018_400Parcels_17Networks_order.dlabel.nii'
 		resource_package = 'pennlinckit'
 		atlas_path = pkg_resources.resource_stream(resource_package, resource_path).name
-	os.system('wb_command -cifti-label-export-table %s 1 temp.txt'%(atlas_path))
+	os.system('{0} -cifti-label-export-table {1} 1 temp.txt'.format(wb_path,atlas_path))
 	df = pd.read_csv('temp.txt',header=None)
 	for i in range(df.shape[0]):
 		try:
@@ -157,13 +182,25 @@ def write_cifti(colors,out_path,parcels='Schaefer400'):
 		try: df[0][i] = str(d[0]) + ' ' + str(int(colors[real_idx][0]*255)) + ' ' + str(int(colors[real_idx][1]*255)) + ' ' + str(int(colors[real_idx][2]*255)) + ' ' + str(int(colors[real_idx][3]*255))
 		except: df[0][i] = str(d[0]) + ' ' + str(int(colors[real_idx][0]*255)) + ' ' + str(int(colors[real_idx][1]*255)) + ' ' + str(int(colors[real_idx][2]*255)) + ' ' + str(255)
 	df.to_csv('temp.txt',index=False,header=False)
-	os.system('wb_command -cifti-label-import %s temp.txt %s.dlabel.nii'%(atlas_path,out_path))
+	os.system('{0} -cifti-label-import {1} temp.txt {2}.dlabel.nii'.format(wb_path,atlas_path,out_path))
 	os.system('rm temp.txt')
 
 def three_d_dist(p1,p2):
 	return math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2)
 
-def distance(nifti,roi,mni):
+def distance_mni(nifti,roi,mni):
+	# roi = 1
+	# mni = 50,-25,50
+	# nifti = 'Schaefer2018_100Parcels_7Networks_order_FSLMNI152_2mm.nii'
+
+	nifti = nib.load(nifti)
+	nifti_data = nifti.get_fdata()
+	nifti.dataobj
+
+	r = three_d_dist(np.mean(np.argwhere(nifti_data==roi),axis=0),real_2_mm(nifti,mni))
+	return r
+
+def distance_voxel_coord(nifti,roi,coord):
 	# roi = 1
 	# mni = 50,25,50
 	# nifti = 'Schaefer2018_100Parcels_7Networks_order_FSLMNI152_2mm.nii'
@@ -172,9 +209,8 @@ def distance(nifti,roi,mni):
 	nifti_data = nifti.get_fdata()
 	nifti.dataobj
 
-	np.mean(np.argwhere(nifti_data==roi),axis=0)
-
-	r = three_d_dist(np.mean(np.argwhere(nifti_data==roi),axis=0),real_2_mm(nifti,mni))
+	r = three_d_dist(np.mean(np.argwhere(nifti_data==roi),axis=0),coord)
+	return r
 
 def real_2_mm(target_image, real_pt):
 	aff = target_image.affine

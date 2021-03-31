@@ -136,7 +136,7 @@ def metrics(make_networks,data,i):
 	return graphs,q,pc,strength
 
 class make_networks:
-	def __init__(self,data,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
+	def __init__(self,data,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True):
 		self.costs = costs
 		self.yeo_partition = yeo_partition
 		self.binary = binary
@@ -151,14 +151,13 @@ class make_networks:
 				data.matrix[m] = data.matrix[m] / 2.
 		if self.yeo_partition != False:
 			self.membership = pennlinckit.brain.yeo_partition(int(self.yeo_partition))[1]
-
 		self.graphs = []
 		self.pc = []
 		self.strength = []
 		self.modularity = []
-		pool = Pool(cores)
-		for r in pool.starmap(metrics, zip(repeat(self),repeat(data),range(data.matrix.shape[0]))):
+		for subject_int in range(data.matrix.shape[0]):
 			# return graphs,q,pc,strength
+			r = metrics(self,data,subject_int)
 			self.graphs.append(r[0])
 			self.modularity.append(r[1])
 			self.pc.append(r[2])

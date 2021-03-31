@@ -8,6 +8,9 @@ import pandas as pd
 
 
 class dataset:
+	"""
+	This is the main object to use to load a dataset
+	"""
 	def __init__(self, source='pnc', cluster='PMACS'):
 		self.cluster = cluster
 		self.source = source

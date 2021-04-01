@@ -5,6 +5,7 @@ import matplotlib as mpl
 import pkg_resources
 import glob
 import os
+import subprocess
 
 try: matplotlib.use('TkAgg')
 except: matplotlib.use('nbagg')
@@ -21,9 +22,10 @@ resource_package = 'pennlinckit'
 resource_path = 'Palatino*'
 path = pkg_resources.resource_filename(resource_package, resource_path)
 
-if len(glob.glob('/home/mb3152/anaconda3/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/Palatino**')) == 0:
-	os.system('cp %s /home/mb3152/anaconda3/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/'%(path))
-	os.system('rm -f -r /home/mb3152/.cache/matplotlib')
+python = subprocess.check_output(['which python'],shell=True).decode().split('/bin/python')[0]
+if len(glob.glob('/%s/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/Palatino**'%(python))) == 0:
+	os.system('cp %s /%s/lib/python3.8/site-packages/matplotlib/mpl-data/fonts/ttf/'%(path,python))
+	os.system('rm -f -r ~/.cache/matplotlib')
 resource_path = 'Palatino.ttf'
 path = pkg_resources.resource_stream(resource_package, resource_path)
 mpl.font_manager.FontProperties(fname=path.name)

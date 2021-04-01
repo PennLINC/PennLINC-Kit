@@ -7,8 +7,8 @@ import glob
 import os
 import subprocess
 
-# try: matplotlib.use('TkAgg')
-# except: matplotlib.use('nbagg')
+try: matplotlib.use('TkAgg')
+except: matplotlib.use('nbagg')
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 plt.rcParams['font.sans-serif'] = "Palatino"

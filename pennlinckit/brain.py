@@ -25,20 +25,20 @@ def vol2fslr(volume,out,roi=False):
 	rh_white = file.replace('HEMI','R').replace('SURFACE','white')
 
 	if roi == True:
-		right_command = "wb_command -volume-to-surface-mapping %s %s \
+		right_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
 		-ribbon-constrained %s %s \
 		-volume-roi %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial,volume)
-		left_command = "wb_command -volume-to-surface-mapping %s %s \
+		left_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
 		%s.L.func.gii \
 		-ribbon-constrained %s %s \
 		-volume-roi %s -interpolate ENCLOSING_VOXEL"%(volume,lh_inflated,out,lh_white,lh_pial,volume)
 
 	if roi == False:
-		right_command = "wb_command -volume-to-surface-mapping %s %s \
+		right_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
 		-ribbon-constrained %s %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial)
-		left_command = "wb_command -volume-to-surface-mapping %s %s \
+		left_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
 		%s.L.func.gii \
 		-ribbon-constrained %s %s -interpolate ENCLOSING_VOXEL" %(volume,lh_inflated,out,lh_white,lh_pial)
 
@@ -48,7 +48,7 @@ def vol2fslr(volume,out,roi=False):
 def cerebellum_vol2surf(input,output):
 	"""
 	input: MNI space volume
-	output: string to save your surface to! 
+	output: string to save your surface to!
 	"""
 	command = """matlab -nosplash -nodesktop -r "addpath /cbica/home/bertolem/spm12/toolbox/suit/;addpath\
 	 /cbica/home/bertolem/spm12/;C.cdata=suit_map2surf('{0}','space','FSL');C=gifti(C);save(C,'{1}.func.gii');exit" """.format(input,output)

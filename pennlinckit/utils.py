@@ -4,6 +4,8 @@ from sklearn.linear_model import RidgeCV
 from sklearn.model_selection import KFold
 from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
+import subprocess
+import os
 
 def matrix_corr(x,y):
 	"""
@@ -31,7 +33,6 @@ def make_dnn_structure(neurons = 80,layers = 10):
 	neurons_array[:] = neurons
 	neurons_array = tuple(neurons_array.astype(int))
 	return neurons_array
-
 
 def nan_pearsonr(x,y):
 	x,y = np.array(x),np.array(y)
@@ -82,7 +83,7 @@ def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_lin
 		m.fit(x_train,y_train)
 		self.prediction[test] = m.predict(x_test)
 		self.corrected_targets[test] = y_test
-                   
+
 def remove(remove_me,y,data_type='linear'):
 	if data_type == 'linear': model = LinearRegression()
 	if data_type == 'categorical': model = LogisticRegression()
@@ -91,3 +92,12 @@ def remove(remove_me,y,data_type='linear'):
 	y_residual =  y - y_predict # residual values
 	return y_residual
 
+def submit_array_job(scipt_path,array_start,array_end,RAM=4,threads=1):
+	os.system('mkdir ~/sge/')
+	command='qsub -t {0}-{1} -l h_vmem={2}G,s_vmem={2}G -pe threaded {3}\
+	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
+	os.system(command)
+
+def get_sge_task_id():
+	sge_task_id = subprocess.check_output(['$ECHO SGE_TASK_ID'],shell=True).decode()
+	return sge_task_id

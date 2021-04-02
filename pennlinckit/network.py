@@ -118,6 +118,8 @@ def threshold(matrix,cost=0.01,binary=False,check_tri=True,interpolation='midpoi
 	return matrix
 
 def metrics(i):
+	global dataset_obj
+	print (id(dataset_obj))
 	m = dataset_obj.matrix[i]
 	graphs = []
 	q = np.zeros((len(dataset_obj.network.costs)))
@@ -137,8 +139,9 @@ def metrics(i):
 	return graphs,q,pc,strength
 
 class make_networks:
-	global dataset_obj
-	def __init__(self,dataset_obj,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
+	def __init__(self,data,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
+		global dataset_obj
+		dataset_obj = data
 		dataset_obj.network = self
 		dataset_obj.network.costs = costs
 		dataset_obj.network.yeo_partition = yeo_partition

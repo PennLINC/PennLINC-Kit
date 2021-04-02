@@ -25,27 +25,18 @@ def get_matrix(self,subject):
 			if self.parcels == 'gordon':
 				matrix_path = '/{0}/neuroimaging/rest/restNetwork_gordon/GordonPNCNetworks/{1}_GordonPNC_network.txt'.format(self.data_path,subject)
 			if self.parcels == 'schaefer':
-				matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.txt'.format(self.data_path,subject)
+				matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
 
 	if self.source == 'hcp':
 		matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
 
-	if self.source == 'pnc':
-		try:
-			m = np.loadtxt(matrix_path)
-		except:
-			m = np.zeros((n_parcels,n_parcels))
-			m[:,:] = np.nan
+	try:
+		m = np.load(matrix_path,mmap_mode='r')
+		return m
+	except:
+		self.measures.drop(np.argwhere(self.measures.subject.values==subject)[0][0],axis=0)
 
-	if self.source == 'hcp':
-		try:
-			m = np.load(matrix_path)
-		except:
-			m = np.zeros((n_parcels,n_parcels))
-			m[:,:] = np.nan
 
-	np.fill_diagonal(m,np.nan) #idiot proof
-	return m
 
 def load_dataset(name):
     return pickle.load(open("{0}".format(name), "rb"))
@@ -104,6 +95,8 @@ class dataset:
 					self.data_dict[k] = i
 			if self.matrix_type == 'diffusion_pr':
 				1/0
+		if self.source == 'hcp':
+			qc = np.nan
 		return qc
 
 	def load_matrices(self, matrix_type, parcels='schaefer'):
@@ -127,8 +120,10 @@ class dataset:
 		"""
 		self.matrix_type = matrix_type
 		self.parcels = parcels
-		qc = self.imaging_qc()
-		self.measures = self.measures.merge(qc,how='inner',on='subject')
+
+		if self.source != 'hcp':
+			qc = self.imaging_qc()
+			self.measures = self.measures.merge(qc,how='outer',on='subject')
 		self.matrix = []
 		for subject in self.measures.subject:
 			self.matrix.append(get_matrix(self,subject))
@@ -203,3 +198,11 @@ class gradient:
 		resource_path = 'schaefer400x17_mean_regional_margulies_gradient.txt'
 		path = pkg_resources.resource_stream(resource_package, resource_path)
 		self.data = np.loadtxt(path.name)
+
+
+# self = dataset('pnc')
+# subject = self.measures.subject[0]
+# self.parcels = 'schaefer'
+# self.matrix_type = 'rest'
+# self.load_matrices('rest')
+# self.matrix.shape

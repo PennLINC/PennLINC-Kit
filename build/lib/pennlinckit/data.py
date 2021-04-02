@@ -9,38 +9,6 @@ from functools import partial
 from itertools import repeat
 import pickle
 
-def get_matrix(self,subject):
-	"""
-	Child of dataset.load_matrices
-	----------
-    Parameters
-    ----------
-    subject: either a single subject, or ** for all subjects
-	"""
-	if self.parcels == 'schaefer': n_parcels = 400
-	if self.parcels == 'gordon': n_parcels = 333
-
-	if self.source == 'pnc':
-		if self.matrix_type == 'rest':
-			if self.parcels == 'gordon':
-				matrix_path = '/{0}/neuroimaging/rest/restNetwork_gordon/GordonPNCNetworks/{1}_GordonPNC_network.txt'.format(self.data_path,subject)
-			if self.parcels == 'schaefer':
-				matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
-
-	if self.source == 'hcp':
-		matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
-
-	try:
-		m = np.load(matrix_path,mmap_mode='r')
-		return m
-	except:
-		self.measures.drop(np.argwhere(self.measures.subject.values==subject)[0][0],axis=0)
-
-
-
-def load_dataset(name):
-    return pickle.load(open("{0}".format(name), "rb"))
-
 class dataset:
 	"""
 	This is the main object to use to load a dataset
@@ -99,6 +67,8 @@ class dataset:
 			qc = np.nan
 		return qc
 
+
+
 	def load_matrices(self, matrix_type, parcels='schaefer'):
 		"""
 		get a matrix from this dataset
@@ -118,16 +88,40 @@ class dataset:
 		dataset.get_matrix('nback',parcels='gordon')
 		dataset.get_matrix('diffusion_pr')
 		"""
+
 		self.matrix_type = matrix_type
+
 		self.parcels = parcels
+		if self.parcels == 'schaefer': n_parcels = 400
+		if self.parcels == 'gordon': n_parcels = 333
+
 
 		if self.source != 'hcp':
 			qc = self.imaging_qc()
-			self.measures = self.measures.merge(qc,how='outer',on='subject')
+			self.measures = self.measures.merge(qc,how='inner',on='subject')
 		self.matrix = []
-		for subject in self.measures.subject:
-			self.matrix.append(get_matrix(self,subject))
+		missing = []
+		for subject in self.measures.subject.values:
+			if self.source == 'pnc':
+				if self.matrix_type == 'rest':
+					if self.parcels == 'gordon':
+						matrix_path = '/{0}/neuroimaging/rest/restNetwork_gordon/GordonPNCNetworks/{1}_GordonPNC_network.txt'.format(self.data_path,subject)
+					if self.parcels == 'schaefer':
+						matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
+			if self.source == 'hcp':
+				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
+			try:
+				m = np.load(matrix_path,mmap_mode='r')
+				self.matrix.append(m)
+			except:
+				missing.append(subject)
+
+		for missing_sub in missing:
+			missing_sub = self.measures.loc[self.measures.subject == missing_sub]
+			self.measures = self.measures.drop(missing_sub.index,axis=0)
 		self.matrix = np.array(self.matrix)
+		assert self.matrix.shape[0] == self.measures.shape[0]
+
 
 	def filter(self,way,value=None,column=None):
 		if way == '==':
@@ -154,8 +148,7 @@ class dataset:
 			mask = np.isnan(self.measures[factors]).sum(axis=1) == 0
 			self.measures = self.measures[mask]
 			self.matrix = self.matrix[mask]
-	def save(self,name):
-		pickle.dump(self, open("{0}".format(name), "wb"))  # save it into a file named save.p
+
 
 class allen_brain_institute:
 	def __init__(self):
@@ -191,7 +184,6 @@ class evo_expansion:
 		path = pkg_resources.resource_stream(resource_package, resource_path)
 		self.data = np.load(path.name)
 
-
 class gradient:
 	def __init__(self):
 		resource_package = 'pennlinckit'
@@ -201,8 +193,8 @@ class gradient:
 
 
 # self = dataset('pnc')
-# subject = self.measures.subject[0]
-# self.parcels = 'schaefer'
-# self.matrix_type = 'rest'
+# matrix_type = 'rest'
+# parcels = 'schaefer'
 # self.load_matrices('rest')
-# self.matrix.shape
+# self.filter('cognitive')
+# self.filter('==',value=0,column='restRelMeanRMSMotionExclude')

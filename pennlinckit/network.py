@@ -6,8 +6,6 @@ from multiprocessing import Pool
 from functools import partial
 from itertools import repeat
 
-global dataset_obj
-
 def part_coef(W, ci, degree='undirected'):
 	'''
 	Participation coefficient is a measure of diversity of intermodular
@@ -117,19 +115,16 @@ def threshold(matrix,cost=0.01,binary=False,check_tri=True,interpolation='midpoi
 		matrix = matrix/np.sum(matrix)
 	return matrix
 
-def metrics(i):
-	global dataset_obj
-	print (id(dataset_obj))
-	m = dataset_obj.matrix[i]
+def metrics(self,m):
 	graphs = []
-	q = np.zeros((len(dataset_obj.network.costs)))
-	pc = np.zeros((dataset_obj.matrix.shape[0],m.shape[0]))
-	strength = np.zeros((len(dataset_obj.network.costs),m.shape[0]))
-	for idx,cost in enumerate(dataset_obj.network.costs):
-		graph = matrix_to_igraph(m.copy(), cost, binary=dataset_obj.network.binary, normalize=dataset_obj.network.normalize, mst=dataset_obj.network.mst)
-		if dataset_obj.network.yeo_partition:
-			vc = VertexClustering(graph,membership=dataset_obj.network.membership ,modularity_params={'weights':'weight'})
-			pc[idx] = part_coef(np.array(graph.get_adjacency(attribute='weight').data),dataset_obj.network.membership)
+	q = np.zeros((len(self.costs)))
+	pc = np.zeros((len(self.costs),m.shape[0]))
+	strength = np.zeros((len(self.costs),m.shape[0]))
+	for idx,cost in enumerate(self.costs):
+		graph = matrix_to_igraph(m.copy(), cost, binary=self.binary, normalize=self.normalize, mst=self.mst)
+		if self.yeo_partition:
+			vc = VertexClustering(graph,membership=self.membership ,modularity_params={'weights':'weight'})
+			pc[idx] = part_coef(np.array(graph.get_adjacency(attribute='weight').data),self.membership)
 		else:
 			vc = graph.community_infomap(edge_weights='weight')
 			pc[idx] = part_coef(np.array(graph.get_adjacency(attribute='weight').data),vc.membership)
@@ -139,36 +134,33 @@ def metrics(i):
 	return graphs,q,pc,strength
 
 class make_networks:
-	def __init__(self,data,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
-		global dataset_obj
-		dataset_obj = data
-		dataset_obj.network = self
-		dataset_obj.network.costs = costs
-		dataset_obj.network.yeo_partition = yeo_partition
-		dataset_obj.network.binary = binary
-		dataset_obj.network.sym = sym
-		dataset_obj.network.normalize = normalize
-		dataset_obj.network.mst = mst
+	def __init__(self,dataset,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
+		self.costs = costs
+		self.yeo_partition = yeo_partition
+		self.binary = binary
+		self.sym = sym
+		self.normalize = normalize
+		self.mst = mst
 		if self.sym == True:
-			for m in range(dataset_obj.matrix.shape[0]):
-				dataset_obj.matrix[m] = dataset_obj.matrix[m]+ dataset_obj.matrix[m].transpose()
-				dataset_obj.matrix[m] = np.tril(dataset_obj.matrix[m],-1)
-				dataset_obj.matrix[m] = dataset_obj.matrix[m] + dataset_obj.matrix[m].transpose()
-				dataset_obj.matrix[m] = dataset_obj.matrix[m] / 2.
-		if dataset_obj.network.yeo_partition != False:
-			dataset_obj.network.membership = pennlinckit.brain.yeo_partition(int(dataset_obj.network.yeo_partition))[1]
-		dataset_obj.network.graphs = []
-		dataset_obj.network.pc = []
-		dataset_obj.network.strength = []
-		dataset_obj.network.modularity = []
+			for m in range(dataset.matrix.shape[0]):
+				dataset.matrix[m] = dataset.matrix[m]+ dataset.matrix[m].transpose()
+				dataset.matrix[m] = np.tril(dataset.matrix[m],-1)
+				dataset.matrix[m] = dataset.matrix[m] + dataset.matrix[m].transpose()
+				dataset.matrix[m] = dataset.matrix[m] / 2.
+		if self.yeo_partition != False:
+			self.membership = pennlinckit.brain.yeo_partition(int(self.yeo_partition))[1]
+		self.graphs = []
+		self.pc = []
+		self.strength = []
+		self.modularity = []
 		pool = Pool(cores)
-		for r in pool.map(metrics,range(dataset_obj.matrix.shape[0])):
+		for r in pool.starmap(metrics, zip(repeat(self),dataset.matrix)):
 			# return graphs,q,pc,strength
-			dataset_obj.network.graphs.append(r[0])
-			dataset_obj.network.modularity.append(r[1])
-			dataset_obj.network.pc.append(r[2])
-			dataset_obj.network.strength.append(r[3])
+			self.graphs.append(r[0])
+			self.modularity.append(r[1])
+			self.pc.append(r[2])
+			self.strength.append(r[3])
 
-		dataset_obj.network.pc = np.array(dataset_obj.network.pc)
-		dataset_obj.network.strength = np.array(dataset_obj.network.strength)
-		dataset_obj.network.modularity = np.array(dataset_obj.network.modularity)
+		self.pc = np.array(self.pc)
+		self.strength = np.array(self.strength)
+		self.modularity = np.array(self.modularity)

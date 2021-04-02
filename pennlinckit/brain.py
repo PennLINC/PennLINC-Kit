@@ -45,6 +45,13 @@ def vol2fslr(volume,out,roi=False):
 	os.system(left_command)
 	os.system(right_command)
 
+def cerebellum_vol2surf():
+	input = 'main_masked_thresh_MNI.nii'
+	output = 'zstats'
+	command = """matlab -nosplash -nodesktop -r "addpath /cbica/home/bertolem/spm12/toolbox/suit/;addpath\
+	 /cbica/home/bertolem/spm12/;C.cdata=suit_map2surf('{0}','space','FSL');C=gifti(C);save(C,'{1}.func.gii');exit" """.format(input,output)
+	os.system(command)
+
 def view_surf(surf,hemi='left'):
 	resource_package = 'pennlinckit'
 	resource_path = 'Q1-Q6_R440.HEMI.SURFACE.32k_fs_LR.surf.gii'

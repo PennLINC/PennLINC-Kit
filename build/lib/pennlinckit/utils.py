@@ -6,6 +6,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 import subprocess
 import os
+import pickle
 
 def matrix_corr(x,y):
 	"""
@@ -105,6 +106,17 @@ def submit_array_job(scipt_path,array_start,array_end,RAM=4,threads=1):
 	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
 	os.system(command)
 
+def submit_job(scipt_path,RAM=4,threads=1):
+	"""
+	submit an sge job
+	"""
+	sgedir = os.path.expanduser('~/sge/')
+	if os.path.isdir(sgedir) == False:
+		os.system('mkdir {0}'.format(sgedir))
+	command='qsub -l h_vmem={0}G,s_vmem={0}G -pe threaded {1}\
+	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {2}'.format(RAM,threads,scipt_path)
+	os.system(command)
+
 def get_sge_task_id():
 	"""
 	This function will return the sge_task_id that gets set by using the submit_array_job command
@@ -115,3 +127,9 @@ def get_sge_task_id():
 	"""
 	sge_task_id = subprocess.check_output(['echo $SGE_TASK_ID'],shell=True).decode()
 	return int(sge_task_id) -1
+
+def load_dataset(name):
+    return pickle.load(open("{0}".format(name), "rb"))
+
+def save_dataset(dataset,name):
+	pickle.dump(dataset, open("{0}".format(name), "wb"))

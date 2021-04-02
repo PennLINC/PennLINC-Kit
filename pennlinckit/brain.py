@@ -45,9 +45,11 @@ def vol2fslr(volume,out,roi=False):
 	os.system(left_command)
 	os.system(right_command)
 
-def cerebellum_vol2surf():
-	input = 'main_masked_thresh_MNI.nii'
-	output = 'zstats'
+def cerebellum_vol2surf(input,output):
+	"""
+	input: MNI space volume
+	output: string to save your surface to! 
+	"""
 	command = """matlab -nosplash -nodesktop -r "addpath /cbica/home/bertolem/spm12/toolbox/suit/;addpath\
 	 /cbica/home/bertolem/spm12/;C.cdata=suit_map2surf('{0}','space','FSL');C=gifti(C);save(C,'{1}.func.gii');exit" """.format(input,output)
 	os.system(command)

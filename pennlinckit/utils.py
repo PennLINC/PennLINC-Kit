@@ -93,11 +93,25 @@ def remove(remove_me,y,data_type='linear'):
 	return y_residual
 
 def submit_array_job(scipt_path,array_start,array_end,RAM=4,threads=1):
-	os.system('mkdir ~/sge/')
+	"""
+	submit and "array job", where you get a job with an ID from array_start to array_end
+	this lets you submit a script and iterate over an array in it.
+	in the script, use the function utils.get_sge_task_id to get the ID
+	"""
+	sgedir = os.path.expanduser('~/sge/')
+	if os.path.isdir(sgedir) == False:
+		os.system('mkdir {0}'.format(sgedir))
 	command='qsub -t {0}-{1} -l h_vmem={2}G,s_vmem={2}G -pe threaded {3}\
 	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
 	os.system(command)
 
 def get_sge_task_id():
-	sge_task_id = subprocess.check_output(['$ECHO SGE_TASK_ID'],shell=True).decode()
-	return sge_task_id
+	"""
+	This function will return the sge_task_id that gets set by using the submit_array_job command
+	SGE starts by default at 1, but this will start at 0, because we are in python
+	So you should have an array in your script you submitted that gets indexed by this value
+	subjects = [one,two,three]
+	subject = subjects[get_sge_task_id()]
+	"""
+	sge_task_id = subprocess.check_output(['echo $SGE_TASK_ID'],shell=True).decode()
+	return int(sge_task_id) -1

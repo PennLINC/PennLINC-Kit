@@ -26,7 +26,7 @@ setup(
     install_requires=[required],
     license="MIT license",
     include_package_data=True,
-    package_data={"": ["*mat","*.txt","*.ttf","*.csv","*.npy","*.nii"]},
+    package_data={"": ["*mat","*.txt","*.ttf","*.csv","*.npy","*.nii","*.gii"]},
     keywords='pennlinckit',
     name='pennlinckit',
     packages=find_packages(include=['pennlinckit','pennlinckit.*']),

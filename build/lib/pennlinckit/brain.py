@@ -28,29 +28,19 @@ def vol2fslr(volume,out,roi=False):
 		right_command = "wb_command -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
 		-ribbon-constrained %s %s \
-		-volume-roi %s" %(volume,rh_inflated,out,rh_white,rh_pial,volume)
+		-volume-roi %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial,volume)
 		left_command = "wb_command -volume-to-surface-mapping %s %s \
 		%s.L.func.gii \
 		-ribbon-constrained %s %s \
-		-volume-roi %s"%(volume,lh_inflated,out,lh_white,lh_pial,volume)
+		-volume-roi %s -interpolate ENCLOSING_VOXEL"%(volume,lh_inflated,out,lh_white,lh_pial,volume)
 
 	if roi == False:
 		right_command = "wb_command -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
-		-ribbon-constrained %s %s" %(volume,rh_inflated,out,rh_white,rh_pial)
+		-ribbon-constrained %s %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial)
 		left_command = "wb_command -volume-to-surface-mapping %s %s \
 		%s.L.func.gii \
-		-ribbon-constrained %s %s" %(volume,lh_inflated,out,lh_white,lh_pial)
-	left_command = "wb_command -volume-to-surface-mapping %s \
-	%s.L.func.gii \
-	-ribbon-constrained %s %s \
-	-interpolate ENCLOSING_VOXEL -thin-columns" %(volume,out,lh_white,lh_pial)
-
-
-	right_command = "wb_command -volume-to-surface-mapping %s\
-	%s.R.func.gii\
-	-ribbon-constrained %s %s\
-	-interpolate ENCLOSING_VOXEL -thin-columns" %(volume,out,rh_white,rh_pial)
+		-ribbon-constrained %s %s -interpolate ENCLOSING_VOXEL" %(volume,lh_inflated,out,lh_white,lh_pial)
 
 	os.system(left_command)
 	os.system(right_command)

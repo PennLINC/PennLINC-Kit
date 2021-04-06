@@ -7,6 +7,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 import subprocess
 import os
 import pickle
+import copy
 
 def matrix_corr(x,y):
 	"""
@@ -133,3 +134,53 @@ def load_dataset(name):
 
 def save_dataset(dataset,name):
 	pickle.dump(dataset, open("{0}".format(name), "wb"))
+
+
+def cut_data(data,min_cut=1.5,max_cut=1.5):
+	"""
+	remove outlier so your colorscale is not driven by one or two large values
+
+    Parameters
+    ----------
+    data: the data you want to cut
+    min_cut: std cutoff for low values
+    max_cut: std cutoff for high values
+
+    Returns
+    -------
+    out : cut data
+	"""
+	d = data.copy()
+	max_v = np.mean(d) + np.std(d)*max_cut
+	min_v = np.mean(d) - np.std(d)*min_cut
+	d[d>max_v] = max_v
+	d[d<min_v] = min_v
+	return d
+
+def make_heatmap(data,cmap='stock'):
+	"""
+	Generate an RGB value for each value in "data"
+
+    Parameters
+    ----------
+    data: the data you want to colormap
+    cmap: nicegreen, nicepurp, stock, Reds, or send your own seaborn color_palette / cubehelix_palette object
+    Returns
+    -------
+    out : RGB values
+	"""
+	if cmap == 'nicegreen': orig_colors = sns.cubehelix_palette(1001, rot=-.5, dark=.3)
+	elif cmap == 'nicepurp': orig_colors = sns.cubehelix_palette(1001, rot=.5, dark=.3)
+	elif cmap == 'stock': orig_colors = sns.color_palette("RdBu_r",n_colors=1001)
+	elif cmap == 'Reds': orig_colors = sns.color_palette("Reds",n_colors=1001)
+	else: orig_colors = cmap
+	norm_data = copy.copy(data)
+	if np.nanmin(data) < 0.0: norm_data = norm_data + (np.nanmin(norm_data)*-1)
+	elif np.nanmin(data) > 0.0: norm_data = norm_data - (np.nanmin(norm_data))
+	norm_data = norm_data / float(np.nanmax(norm_data))
+	norm_data = norm_data * 1000
+	norm_data = norm_data.astype(int)
+	colors = []
+	for d in norm_data:
+		colors.append(orig_colors[d])
+	return colors

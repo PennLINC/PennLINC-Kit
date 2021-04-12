@@ -13,7 +13,16 @@ import brainsmash.mapgen.stats
 from scipy.stats import pearsonr
 
 
-def vol2fslr(volume,out,roi=False):
+def vol2fslr(volume,out,mapping = 'ribbon'):
+	"""
+	wraps the connectome workbench method
+	volume: str, path to nifti, 2mm MNI152 image
+	out: str, what you want to call your surface
+	mapping: use "ribbon" for continuous values,
+	"parcels" if you don't wnt values "mixing".
+	"""
+
+
 	resource_package = 'pennlinckit'
 	resource_path = 'Q1-Q6_R440.HEMI.SURFACE.32k_fs_LR.surf.gii'
 	file = pkg_resources.resource_filename(resource_package, resource_path)
@@ -24,17 +33,21 @@ def vol2fslr(volume,out,roi=False):
 	lh_white = file.replace('HEMI','L').replace('SURFACE','white')
 	rh_white = file.replace('HEMI','R').replace('SURFACE','white')
 
-	if roi == True:
-		right_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
-		%s.R.func.gii \
-		-ribbon-constrained %s %s \
-		-volume-roi %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial,volume)
-		left_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
-		%s.L.func.gii \
-		-ribbon-constrained %s %s \
-		-volume-roi %s -interpolate ENCLOSING_VOXEL"%(volume,lh_inflated,out,lh_white,lh_pial,volume)
+	# if roi == True:
+	# 	right_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
+	# 	%s.R.func.gii \
+	# 	-ribbon-constrained %s %s \
+	# 	-volume-roi %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial,volume)
+	# 	left_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
+	# 	%s.L.func.gii \
+	# 	-ribbon-constrained %s %s \
+	# 	-volume-roi %s -interpolate ENCLOSING_VOXEL"%(volume,lh_inflated,out,lh_white,lh_pial,volume)
 
-	if roi == False:
+	if mapping == 'parcels':
+		right_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s %s.R.func.gii -enclosing" %(volume,rh_inflated,out)
+		left_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s %s.L.func.gii -enclosing" %(volume,lh_inflated,out)
+
+	if mapping == 'ribbon':
 		right_command = "/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
 		-ribbon-constrained %s %s -interpolate ENCLOSING_VOXEL" %(volume,rh_inflated,out,rh_white,rh_pial)

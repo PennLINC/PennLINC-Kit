@@ -52,6 +52,59 @@ def log_p_value(p):
 		p = "-log10()=%s"%(np.around(p,0).astype(int))
 	return p
 
+def bootstrap_t_test(x,y,t_test,perms=10000):
+	"""
+	permutation test any given t_test
+
+	x,y: numpy array, group data you are comparing
+	t_test: scipy.stats object (e.g., scipy.stats.ttest_rel)
+	perms: int, number of perms
+
+	returns:
+	t, original test value
+	l,h, 95% confidence intervals
+	p, bootstrap based p-value
+	"""
+	x_mean = x.mean()
+	y_mean = y.mean()
+	xy_mean = np.mean(np.array([x,y]))
+	t, p = t_test(x,y)
+	x_test = x - x_mean + xy_mean
+	y_test = y - y_mean + xy_mean
+	perm_shape = x.shape[0]
+	stat = np.zeros(perms)
+	for p in range(perms):
+		this_perm = np.random.choice(range(perm_shape),perm_shape,replace=True)
+		stat[p] =  t_test(x_test[this_perm],y_test[this_perm])[0]
+	l,h =  np.percentile(stat,2.5),np.percentile(stat,97.5)
+	if t > 0: return (t,l,h,len(stat[stat<0]) / (len(stat))*2)
+	else:return(t,l,h,len(stat[stat>0]) / (len(stat))*2)
+
+def bootstrap_corr(x,y,corr,perms=10000):
+	"""
+	permutation test any given correlation
+
+	x,y: numpy array, group data you are comparing
+	t_test: scipy.stats object (e.g., scipy.stats.pearsonr)
+	perms: int, number of perms
+
+	returns:
+	t, original corr r value
+	l,h, 95% confidence intervals
+	p, bootstrap based p-value
+	"""
+	perm_shape = x.shape[0]
+	r = corr(x,y)[0]
+	stat = np.zeros(perms)
+	for p in range(perms):
+		this_perm = np.random.choice(range(perm_shape),perm_shape,replace=True)
+		stat[p] =  corr(x[this_perm],y[this_perm])[0]
+	l,h =  np.percentile(stat,2.5),np.percentile(stat,97.5)
+	if r > 0:
+		return (r,l,h,len(stat[stat<0]) / (len(stat))*2)
+	else:
+		return(r,l,h,len(stat[stat>0]) / (len(stat))*2)
+
 def convert_r_p(r,p):
 	return "r=%s\n%s"%(np.around(r,3),log_p_value(p))
 
@@ -70,9 +123,9 @@ def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_lin
 		x_train,y_train,x_test,y_test = self.features[train].copy(),self.targets[train].copy(),self.features[test].copy(),self.targets[test].copy()
 		if type(remove_linear_vars) != bool:
 			nuisance_model = LinearRegression()
-			nuisance_model.fit(self.measures[remove_linear_vars].values[train],y_train)
-			y_train = y_train - nuisance_model.predict(self.measures[remove_linear_vars].values[train])
-			y_test = y_test - nuisance_model.predict(self.measures[remove_linear_vars].values[test])
+			nuisance_model.fit(self.measures[remove_linear_vars].values[train],y_train) #fit the nuisance_model to training data
+			y_train = y_train - nuisance_model.predict(self.measures[remove_linear_vars].values[train]) #remove nuisance from training data
+			y_test = y_test - nuisance_model.predict(self.measures[remove_linear_vars].values[test]) #remove nuisance from test data
 		if type(remove_cat_vars) != bool:
 			nuisance_model = LogisticRegression()
 			nuisance_model.fit(self.measures[remove_linear_vars].values[train],y_train)
@@ -107,7 +160,7 @@ def submit_array_job(scipt_path,array_start,array_end,RAM=4,threads=1):
 	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
 	os.system(command)
 
-def submit_job(scipt_path,RAM=4,threads=1):
+def submit_job(scipt_path,name,RAM=4,threads=1):
 	"""
 	submit an sge job
 	"""
@@ -115,7 +168,7 @@ def submit_job(scipt_path,RAM=4,threads=1):
 	if os.path.isdir(sgedir) == False:
 		os.system('mkdir {0}'.format(sgedir))
 	command='qsub -l h_vmem={0}G,s_vmem={0}G -pe threaded {1}\
-	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {2}'.format(RAM,threads,scipt_path)
+	 -N {2} -V -j y -b y -o ~/sge/ -e ~/sge/ python {3}'.format(RAM,threads,name,scipt_path)
 	os.system(command)
 
 def get_sge_task_id():

@@ -111,7 +111,7 @@ class dataset:
 			if self.source == 'hcp':
 				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
 			try:
-				m = np.load(matrix_path,mmap_mode='r')
+				m = np.load(matrix_path)
 				self.matrix.append(m)
 			except:
 				missing.append(subject)

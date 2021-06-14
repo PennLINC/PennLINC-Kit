@@ -9,63 +9,42 @@ from functools import partial
 from itertools import repeat
 import pickle
 
+
+def clone(self):
+	orig_dir = os.getcwd()
+	os.mkdir(self.rbc_path)
+	os.chdir(self.rbc_path)
+	cmd = 'datalad clone {0}'.format('RIA STORE HERE MUST EDIT')
+	os.system(cmd)
+	os.chdir(orig_dir)
+
 class dataset:
 	"""
 	This is the main object to use to load a dataset
 	"""
-	def __init__(self, source='pnc',cores=1):
+	def __init__(self, source='ccnp',cores=1,rbc_path='~/rbc/'):
+		#just the name of the dataset
 		self.source = source
+		#there are some functions that use multiple cores
 		self.cores = cores
-		self.data_path = '/gpfs/fs001/cbica/home/bertolem/{0}'.format(source)
-		if self.source == 'pnc':
-			self.subject_column = 'scanid'
-			self.measures = pd.read_csv('{0}/demographics/n1601_demographics_go1_20161212.csv'.format(self.data_path))
-			self.subject_column = {'scanid':'subject'}
-			self.measures = self.measures.rename(columns=self.subject_column)
-			clinical = pd.read_csv('{0}/clinical/n1601_goassess_itemwise_bifactor_scores_20161219.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(clinical,how='outer',on='subject')
-			clinical_dict = pd.read_csv('{0}/clinical/goassess_clinical_factor_scores_dictionary.txt'.format(self.data_path),sep='\t')[24:29].drop(columns=['variablePossibleValues','source', 'notes'])
-			self.data_dict = {}
-			for k,i in zip(clinical_dict.variableName.values,clinical_dict.variableDefinition.values):
-				self.data_dict[k.strip(' ')] = i.strip(' ')
-			cognitive = pd.read_csv('{0}/cnb/n1601_cnb_factor_scores_tymoore_20151006.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(cognitive,how='outer',on='subject')
-			cognitive_dict = pd.read_csv('{0}/cnb/cnb_factor_scores_dictionary.txt'.format(self.data_path),sep='\t').drop(columns=['source'])
-			for k,i in zip(cognitive_dict.variableName.values,cognitive_dict.variableDefinition.values):
-				self.data_dict[k.strip(' ')] = i.strip(' ')
-			cog_factors = pd.read_csv('{0}/cnb/cog_factors.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(cog_factors,how='outer',on='subject')
-		if self.source == 'hcp':
-			self.subject_column = 'Subject'
-			self.measures = pd.read_csv('{0}/unrestricted_mb3152_2_25_2021_8_59_45.csv'.format(self.data_path))
-			self.subject_column = {'Subject':'subject'}
-			self.measures = self.measures.rename(columns=self.subject_column)
+		#where does all of your rbc data live?
+		self.rbc_path = rbc_path
+		#this is where the zip files are going to exist
+		self.data_path = '{0}/{1}'.format(rbc_path,souce)
+		#check to see if data exists, if it does not, clone it
+		if os.path.exists(self.data_path) == False: clone(self)
+
+		self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
+		self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition
 
 	def update_subjects(self,subjects):
 		self.measures = self.measures[self.measures.subject.isin(subjects)]
 
-	def methods(self):
+	def get_methods(self,modality='functional'):
 		resource_package = 'pennlinckit'
-		resource_path = '{0}_boiler.txt'.format(self.source)
-		path = pkg_resources.resource_stream(resource_package, resource_path)
-		f = open(path.name, 'r').read()
-		print (f)
+		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
+		return np.loadtxt(resource_path)
 
-	def asl(self):
-		self.asl = 0
-
-	def imaging_qc(self):
-		if self.source == 'pnc':
-			if self.matrix_type == 'rest':
-				qc = pd.read_csv('{0}/neuroimaging/rest/n1601_RestQAData_20170714.csv'.format(self.data_path)).rename(columns=self.subject_column)
-				qa_dict = pd.read_csv('{0}/neuroimaging/rest/restQADataDictionary_20161010.csv'.format(self.data_path))
-				for k,i in zip(qa_dict.columnName.values,qa_dict.columnDescription.values):
-					self.data_dict[k] = i
-			if self.matrix_type == 'diffusion_pr':
-				1/0
-		if self.source == 'hcp':
-			qc = np.nan
-		return qc
 
 
 

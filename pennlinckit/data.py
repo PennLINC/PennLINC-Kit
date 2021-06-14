@@ -11,6 +11,9 @@ import pickle
 
 
 def clone(self):
+	"""
+	method of dataset
+	"""
 	orig_dir = os.getcwd()
 	os.mkdir(self.rbc_path)
 	os.chdir(self.rbc_path)
@@ -20,9 +23,16 @@ def clone(self):
 
 class dataset:
 	"""
-	This is the main object to use to load a dataset
+	This is the main object to use to load an rbc dataset
+	If the dataset does not exist yet, it will clone & get it, default
+	is to ~/rbc, but you can edit this as 'rbc_path'
+
+	source: str, the name of the dataset
+	cores: int, the number of cores you will use for analysis
+	rbc_path: str, directory, where you want to store, or where you
+	have stored, your rbc data, default is ~/rbc
 	"""
-	def __init__(self, source='ccnp',cores=1,rbc_path='~/rbc/'):
+	def __init__(self, source='ccnp',rbc_path='~/rbc/',cores=1,):
 		#just the name of the dataset
 		self.source = source
 		#there are some functions that use multiple cores
@@ -44,8 +54,6 @@ class dataset:
 		resource_package = 'pennlinckit'
 		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
 		return np.loadtxt(resource_path)
-
-
 
 
 	def load_matrices(self, matrix_type, parcels='schaefer'):

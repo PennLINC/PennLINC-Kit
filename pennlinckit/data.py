@@ -34,7 +34,7 @@ def clone(self):
 	files = glob.glob('concat_ds/*.h5*')
 	print ("You have the following data:")
 	for f in files:
-		print ('FC matrices: {0}'.format(f.split('/')[1].split('.')[0]))
+		print ('FC Matrix, BOLD TimeSeries: {0}'.format(f.split('/')[1].split('.')[0]))
 	os.chdir(orig_dir)
 
 class dataset:
@@ -48,7 +48,7 @@ class dataset:
 	rbc_path: str, directory, where you want to store, or where you
 	have stored, your rbc data, default is ~/rbc
 	"""
-	def __init__(self, source='ccnp',rbc_path='~/rbc/',cores=1,):
+	def __init__(self, source='ccnp',rbc_path='~/rbc/',cores=1):
 		#just the name of the dataset
 		self.source = source
 		#there are some functions that use multiple cores
@@ -73,18 +73,20 @@ class dataset:
 		return np.loadtxt(resource_path)
 
 
-	def load_matrices(self, matrix_type, parcels='schaefer'):
+	def load_matrices(self, matrix_type, wildcard='ses-1', parcels='schaefer',sub_cortex=False):
 		"""
-		get a matrix from this dataset
+		load matrix from this dataset
 	    ----------
 	    parameters
 	    ----------
-	    matrix_type: what type of matrix do you want? can be a task, resting-state, diffusion
-		parcels: schaefer or gordon
+	    matrix_type: str, what type of matrix do you want? bold, diffusion (name the type)
+		wildcard: str,
+		parcels: str, schaefer, gordon, yeo,
+		sub_cortex: bool, do you want this (https://github.com/yetianmed/subcortex) added on?
 	    ----------
 		returns
 	    ----------
-	    out : mean numpy matrix, fisher-z transformed before meaning, np.nan down the diagonal
+	    out : numpy matrix, fisher-z transformed before meaning(if done), np.nan down the diagonal
 	    ----------
 		pnc examples
 	    ----------
@@ -98,6 +100,9 @@ class dataset:
 		self.parcels = parcels
 		if self.parcels == 'schaefer': n_parcels = 400
 		if self.parcels == 'gordon': n_parcels = 333
+
+		if self.sub_cortex == True:
+			n_parcels = n_parcels +50
 
 
 		if self.source != 'hcp':
@@ -114,6 +119,7 @@ class dataset:
 						matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
 			if self.source == 'hcp':
 				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
+
 			try:
 				m = np.load(matrix_path)
 				self.matrix.append(m)

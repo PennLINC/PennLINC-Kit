@@ -17,8 +17,12 @@ def clone(self):
 	orig_dir = os.getcwd()
 	os.mkdir(self.rbc_path)
 	os.chdir(self.rbc_path)
-	cmd = 'datalad clone {0}'.format('RIA STORE HERE MUST EDIT')
-	os.system(cmd)
+	os.system('datalad clone /cbica/projects/RBC/production/{0}/fcon/'.format(self.source.upper()))
+	os.chdir('{0}/fcon'.format(os.getcwd()))
+	os.system('datalad get group_matrices.zip')
+	os.system('datalad unlock group_matrices.zip')
+	os.system('git annex dead here')
+	os.system('unzip group_matrices.zip')
 	os.chdir(orig_dir)
 
 class dataset:
@@ -40,12 +44,13 @@ class dataset:
 		#where does all of your rbc data live?
 		self.rbc_path = rbc_path
 		#this is where the zip files are going to exist
-		self.data_path = '{0}/{1}'.format(rbc_path,souce)
+		self.data_path = '{0}/{1}/concat_ds/'.format(rbc_path,souce)
 		#check to see if data exists, if it does not, clone it
 		if os.path.exists(self.data_path) == False: clone(self)
 
 		self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
 		self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition
+		self.data_narratives #this is the history of how we got it into BIDS format pre fmriprep
 
 	def update_subjects(self,subjects):
 		self.measures = self.measures[self.measures.subject.isin(subjects)]

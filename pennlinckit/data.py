@@ -8,21 +8,33 @@ from multiprocessing import Pool
 from functools import partial
 from itertools import repeat
 import pickle
+import h5py
 
+
+
+class self:
+	def __init__(self):
+		pass
 
 def clone(self):
 	"""
 	method of dataset
 	"""
 	orig_dir = os.getcwd()
-	os.mkdir(self.rbc_path)
-	os.chdir(self.rbc_path)
+	clone_path = '{0}/{1}/'.format(self.rbc_path,self.source)
+	os.makedirs(clone_path,exist_ok=True)
+	os.chdir(clone_path)
 	os.system('datalad clone /cbica/projects/RBC/production/{0}/fcon/'.format(self.source.upper()))
-	os.chdir('{0}/fcon'.format(os.getcwd()))
+	os.chdir('{0}/fcon'.format(clone_path))
 	os.system('datalad get group_matrices.zip')
 	os.system('datalad unlock group_matrices.zip')
 	os.system('git annex dead here')
 	os.system('unzip group_matrices.zip')
+	print ("Clone of {0} safely completed to: {1}".format(self.source,clone_path))
+	files = glob.glob('concat_ds/*.h5*')
+	print ("You have the following data:")
+	for f in files:
+		print ('FC matrices: {0}'.format(f.split('/')[1].split('.')[0]))
 	os.chdir(orig_dir)
 
 class dataset:
@@ -44,7 +56,7 @@ class dataset:
 		#where does all of your rbc data live?
 		self.rbc_path = rbc_path
 		#this is where the zip files are going to exist
-		self.data_path = '{0}/{1}/concat_ds/'.format(rbc_path,souce)
+		self.data_path = '{0}/{1}/concat_ds/'.format(self.rbc_path,self.source)
 		#check to see if data exists, if it does not, clone it
 		if os.path.exists(self.data_path) == False: clone(self)
 

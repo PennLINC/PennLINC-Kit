@@ -21,16 +21,15 @@ def clone(self):
 	method of dataset
 	"""
 	orig_dir = os.getcwd()
-	clone_path = '{0}/{1}/'.format(self.rbc_path,self.source)
-	os.makedirs(clone_path,exist_ok=True)
-	os.chdir(clone_path)
+	os.makedirs(self.data_path,exist_ok=True)
+	os.chdir(self.data_path)
 	os.system('datalad clone /cbica/projects/RBC/production/{0}/fcon/'.format(self.source.upper()))
-	os.chdir('{0}/fcon'.format(clone_path))
+	os.chdir('{0}/fcon'.format(self.data_path))
 	os.system('datalad get group_matrices.zip')
 	os.system('datalad unlock group_matrices.zip')
 	os.system('git annex dead here')
 	os.system('unzip group_matrices.zip')
-	print ("Clone of {0} safely completed to: {1}".format(self.source,clone_path))
+	print ("Clone of {0} safely completed to: {1}".format(self.source,self.data_path))
 	files = glob.glob('concat_ds/*.h5*')
 	print ("You have the following data:")
 	for f in files:
@@ -48,7 +47,7 @@ class dataset:
 	rbc_path: str, directory, where you want to store, or where you
 	have stored, your rbc data, default is ~/rbc
 	"""
-	def __init__(self, source='ccnp',rbc_path='~/rbc/',cores=1):
+	def __init__(self, source='ccnp',rbc_path='/cbica/home/bertolem/local_rbc',cores=1):
 		#just the name of the dataset
 		self.source = source
 		#there are some functions that use multiple cores
@@ -56,9 +55,10 @@ class dataset:
 		#where does all of your rbc data live?
 		self.rbc_path = rbc_path
 		#this is where the zip files are going to exist
-		self.data_path = '{0}/{1}/concat_ds/'.format(self.rbc_path,self.source)
+		self.data_path = '{0}/{1}/'.format(self.rbc_path,self.source)
 		#check to see if data exists, if it does not, clone it
-		if os.path.exists(self.data_path) == False: clone(self)
+		if os.path.exists(self.clone_path) == False:
+			clone(self)
 
 		self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
 		self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition

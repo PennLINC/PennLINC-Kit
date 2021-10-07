@@ -9,6 +9,7 @@ from functools import partial
 from itertools import repeat
 import pickle
 import h5py
+from os.path import expanduser
 
 
 
@@ -24,18 +25,22 @@ def clone(self):
 	os.makedirs(self.data_path,exist_ok=True)
 	os.chdir(self.data_path)
 	if self.source == 'hcpya': os.system('datalad clone /cbica/home/bertolem/xcp_hcp/fcon/')
-	else: os.system('datalad clone /cbica/projects/RBC/production/{0}/fcon/'.format(self.source.upper()))
+	else: os.system('datalad clone /cbica/projects/RBC/production/{0}/xcp/'.format(self.source.upper()))
+	
+def clone(dataset):
+
+	cmd = 'datalad clone {0}'.format(self.clone_path)
+	os.system(cmd)
+	# $ cd qsiprep_outputs
+	# $ # Unlock one of the results zip files
+	# $ datalad get sub-1_qsiprep-0.14.2.zip
+	# $ datalad unlock sub-1_qsiprep-0.14.2.zip
+	# $ unzip sub-1_qsiprep-0.14.2.zip
+
 	os.chdir('{0}/fcon'.format(self.data_path))
 	os.system('datalad get group_matrices.zip')
 	os.system('datalad unlock group_matrices.zip')
 	os.system('git annex dead here')
-	os.system('unzip group_matrices.zip')
-	print ("Clone of {0} safely completed to: {1}".format(self.source,self.data_path))
-	files = glob.glob('concat_ds/*.h5*')
-	print ("You have the following data:")
-	for f in files:
-		print ('FC Matrix, BOLD TimeSeries: {0}'.format(f.split('/')[1].split('.')[0]))
-	os.chdir(orig_dir)
 
 class dataset:
 	"""
@@ -48,22 +53,34 @@ class dataset:
 	rbc_path: str, directory, where you want to store, or where you
 	have stored, your rbc data, default is ~/rbc
 	"""
-	def __init__(self, source='ccnp',rbc_path='/cbica/home/bertolem/local_rbc',cores=1):
+	def __init__(self, source='pnc',rbc_path=None,source_path=None,cores=1):
+		
+		
 		#just the name of the dataset
-		self.source = source
+		self.source = source.upper()
 		#there are some functions that use multiple cores
 		self.cores = cores
 		#where does all of your rbc data live?
+		if rbc_path == None: rbc_path='/'.join([expanduser("~"),'rbc'])
 		self.rbc_path = rbc_path
-		#this is where the zip files are going to exist
-		self.data_path = '{0}/{1}/'.format(self.rbc_path,self.source)
+		#where are we cloning from?
+		if source_path == None: source_path = '/cbica/projects/RBC/production/'
+		self.source_path = source_path
+		#what is the clone path?
+		self.clone_path = '{0}{1}/xcp/output_ria#~data'.format(self.source_path,self.source)
 		#check to see if data exists, if it does not, clone it
-		if os.path.exists(self.clone_path) == False:
-			clone(self)
+		if os.path.exists('{0}/{1}'.format(self.rbc_path,self.source)) == False:
+			
 
-		self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
-		self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition
-		self.data_narratives #this is the history of how we got it into BIDS format pre fmriprep
+		# self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
+		# self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition
+		# self.data_narratives #this is the history of how we got it into BIDS format pre fmriprep
+
+	def clone():
+		os.makedirs(self.rbc_path)
+		os.chdir(self.rbc_path)
+		cmd = 'datalad clone {0}'.format(self.clone_path)
+		os.system(cmd)
 
 	def update_subjects(self,subjects):
 		self.measures = self.measures[self.measures.subject.isin(subjects)]

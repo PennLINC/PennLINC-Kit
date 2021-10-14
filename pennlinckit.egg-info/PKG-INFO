@@ -1,4 +1,4 @@
-Metadata-Version: 1.2
+Metadata-Version: 2.1
 Name: pennlinckit
 Version: 0.1.0
 Summary: all the functions we use in the PennLINC
@@ -6,7 +6,6 @@ Home-page: https://pennlinc.github.io/PennLINC-Kit/
 Author: Max Bertolero
 Author-email: mbertolero@me.com
 License: MIT license
-Description: UNKNOWN
 Keywords: pennlinckit
 Platform: UNKNOWN
 Classifier: Development Status :: 2 - Pre-Alpha
@@ -19,3 +18,7 @@ Classifier: Programming Language :: Python :: 3.6
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
 Requires-Python: >=3.5
+License-File: LICENSE
+
+UNKNOWN
+

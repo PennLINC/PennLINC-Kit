@@ -18,8 +18,9 @@ def vol2fslr(volume,out,roi=False,wb_path='/cbica/home/bertolem/workbench//bin_r
 	wraps the connectome workbench method
 	volume: str, path to nifti, 2mm MNI152 image
 	out: str, what you want to call your surface
-	mapping: use "ribbon" for continuous values,
-	"parcels" if you don't wnt values "mixing".
+	roi: False for continuous values, True for ROIs /
+	"parcels" if you don't want values "mixing".
+	wb_path: this is for CUBIC, edit if you are running locally
 	"""
 
 	resource_package = 'pennlinckit'
@@ -42,10 +43,6 @@ def vol2fslr(volume,out,roi=False,wb_path='/cbica/home/bertolem/workbench//bin_r
 		-ribbon-constrained %s %s \
 		-volume-roi %s -interpolate ENCLOSING_VOXEL"%(wb_path,volume,lh_inflated,out,lh_white,lh_pial,volume)
 
-	# if mapping == 'parcels':
-	# 	right_command = " %s -volume-to-surface-mapping %s %s %s.R.func.gii -enclosing" %(wb_path,volume,rh_inflated,out)
-	# 	left_command = "%s -volume-to-surface-mapping %s %s %s.L.func.gii -enclosing" %(wb_path,volume,lh_inflated,out)
-
 	if roi == False:
 		right_command = "%s -volume-to-surface-mapping %s %s \
 		%s.R.func.gii \
@@ -57,17 +54,6 @@ def vol2fslr(volume,out,roi=False,wb_path='/cbica/home/bertolem/workbench//bin_r
 	os.system(left_command)
 	os.system(right_command)
 	os.system('%s -cifti-create-dense-scalar %s.dscalar.nii -left-metric %s.L.func.gii -right-metric %s.R.func.gii' %(wb_path,out,out,out))
-
-	# if roi = 'True':
-	# 	p = nib.load('%s.dscalar.nii'%(out))
-	# 	d = p.get_fdata()
-	# 	d = np.ceil(d)
-
-
-	# 	new_img = nib.Cifti2Image(d, header=p.header,nifti_header=p.nifti_header)
-	# 	new_img.to_filename('%s.dscalar.nii'%(out))
-
-	# # wb_command -cifti-parcel-mapping-to-label
 
 
 

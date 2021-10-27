@@ -29,10 +29,8 @@ class dataset:
 		self.source = source
 		if self.source == 'hcpya': 
 			self.source_path = '/cbica/projects/hcpya/'
-			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv')
+			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv').rename(columns={'Subject':'subject'})
 		self.cores = cores
-
-
 
 	def update_subjects(self,subjects):
 		self.measures = self.measures[self.measures.subject.isin(subjects)]
@@ -43,7 +41,7 @@ class dataset:
 		return np.loadtxt(resource_path)
 
 
-	def load_matrices(self, matrix_type, wildcard='ses-1', parcels='schaefer',sub_cortex=False):
+	def load_matrices(self, matrix_type, task='**', parcels='Schaefer417',sub_cortex=False):
 		"""
 		load matrix from this dataset
 	    ----------
@@ -56,7 +54,7 @@ class dataset:
 	    ----------
 		returns
 	    ----------
-	    out : numpy matrix, fisher-z transformed before meaning(if done), np.nan down the diagonal
+	    out : numpy matrix, fisher-z transformed, np.nan down the diagonal
 	    ----------
 		pnc examples
 	    ----------
@@ -66,42 +64,54 @@ class dataset:
 		"""
 
 		self.matrix_type = matrix_type
-
+		self.sub_cortex = sub_cortex
 		self.parcels = parcels
-		if self.parcels == 'schaefer': n_parcels = 400
+		self.task = task
+		if self.parcels == 'Schaefer417': n_parcels = 400
+		if self.parcels == 'Schaefer217': n_parcels = 200
 		if self.parcels == 'gordon': n_parcels = 333
+		if self.sub_cortex == True: n_parcels = n_parcels +50
 
-		if self.sub_cortex == True:
-			n_parcels = n_parcels +50
-
-
-
-		# qc = self.imaging_qc() #this will be the audit outputs
-		# self.measures = self.measures.merge(qc,how='inner',on='subject')
 		self.matrix = []
+		qc_df = []
 		missing = []
-		for subject in self.measures.subject.values:
-			if self.source == 'pnc':
-				if self.matrix_type == 'rest':
-					if self.parcels == 'gordon':
-						matrix_path = '/{0}/neuroimaging/rest/restNetwork_gordon/GordonPNCNetworks/{1}_GordonPNC_network.txt'.format(self.data_path,subject)
-					if self.parcels == 'schaefer':
-						matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
-			if self.source == 'hcp':
-				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
-
-			try:
-				m = np.load(matrix_path)
-				self.matrix.append(m)
-			except:
+		for subject in self.subject_measures.subject.values:
+			if self.source == 'hcpya': 
+				glob_matrices = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				
+			if len(glob_matrices)==0:
 				missing.append(subject)
+				continue
+			subject_matrices = []
+			for matrix_path in glob_matrices:
+				m = nib.load(matrix_path).get_fdata()
+				np.fill_diagonal(m,0)
+				m = np.arctanh(m)
+				subject_matrices.append(m)
+			if len(glob_matrices)>1:
+				subject_matrices = np.nanmean(subject_matrices,axis=0)
+			np.fill_diagonal(subject_matrices,np.nan)
+			self.matrix.append(subject_matrices)
+
+			glob_qc = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+			columns = pd.read_csv(glob_qc[0]).columns
+			sub_df = pd.DataFrame(columns=columns)
+			for qc in glob_qc:
+				sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
+			sub_df = sub_df.groupby('sub').mean()
+			sub_df['subject'] = sub_df.index
+			qc_df.append(sub_df)
 
 		for missing_sub in missing:
-			missing_sub = self.measures.loc[self.measures.subject == missing_sub]
-			self.measures = self.measures.drop(missing_sub.index,axis=0)
+			missing_sub = self.subject_measures.loc[self.subject_measures.subject == missing_sub]
+			self.subject_measures = self.subject_measures.drop(missing_sub.index,axis=0)
 		self.matrix = np.array(self.matrix)
 		assert self.matrix.shape[0] == self.measures.shape[0]
 
+		df = qc_df[0]
+		for df_idx in range(1,len(qc_df)):
+			df = df.append(qc_df[df_idx],ignore_index=True)
+		self.subject_measures = self.subject_measures.merge(df,how='inner',on='subject')
 
 	def filter(self,way,value=None,column=None):
 		if way == '==':

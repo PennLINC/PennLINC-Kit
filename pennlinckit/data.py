@@ -24,13 +24,12 @@ class dataset:
 	source: str, the name of the dataset
 	cores: int, the number of cores you will use for analysis
 	"""
-	def __init__(self, source='hcpya',source_path=None,cores=1):
+	def __init__(self, source='hcpya',cores=1):
 
 		self.source = source
 		if self.source == 'hcpya': 
-			source_path = '/cbica/projects/hcpya/'
+			self.source_path = '/cbica/projects/hcpya/'
 			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv')
-		self.source_path = source_path
 		self.cores = cores
 
 
@@ -76,9 +75,9 @@ class dataset:
 			n_parcels = n_parcels +50
 
 
-		if self.source != 'hcp':
-			qc = self.imaging_qc()
-			self.measures = self.measures.merge(qc,how='inner',on='subject')
+
+		# qc = self.imaging_qc() #this will be the audit outputs
+		# self.measures = self.measures.merge(qc,how='inner',on='subject')
 		self.matrix = []
 		missing = []
 		for subject in self.measures.subject.values:

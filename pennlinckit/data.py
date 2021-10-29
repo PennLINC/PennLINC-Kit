@@ -3,6 +3,7 @@ import numpy as np
 import os
 from urllib.request import urlretrieve
 import pkg_resources
+import nibabel as nib
 import pandas as pd
 from multiprocessing import Pool
 from functools import partial
@@ -18,18 +19,41 @@ class self:
 		pass
 
 
+"""
+for testing
+source = 'hcpd-dcan'
+matrix_type = 'fc'
+task = '**'
+parcels = 'Schaefer417'
+sub_cortex = False
+cores = 1
+"""
+df = pd.read_csv('/cbica/projects/hcpd/data/HCA_LS_2.0_subject_completeness.csv',skiprows=[1])
+neo = pd.read_csv('/cbica/projects/hcpd/data/nffi01.txt',skiprows=[1],sep='\t')
+# demo = pd.read_csv('socdem01.txt',skiprows=[1],sep='\t')
+df = df.merge(neo,'left',on='subjectkey',suffixes=[None,'neo'])
+# df = df.merge(demo,'left',on='subjectkey',suffixes=[None,'demo'])
+df.to_csv('/cbica/projects/hcpd/data/hcpd_demographics.csv',index=False)
+
+
 class dataset:
 	"""
 	This is the main object to use to load an rbc dataset
 	source: str, the name of the dataset
 	cores: int, the number of cores you will use for analysis
 	"""
-	def __init__(self, source='hcpya',cores=1):
+	def __init__(self, source='hcpya',cores=1,source_path=):
 
 		self.source = source
 		if self.source == 'hcpya': 
 			self.source_path = '/cbica/projects/hcpya/'
 			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv').rename(columns={'Subject':'subject'})
+		elif self.source == 'hcpd-dcan':
+			self.source_path = '/cbica/projects/hcpd/'
+			self.subject_measures = pd.read_csv('{0}/data/hcpd_demographics.csv'.format(self.source_path))
+			self.subject_measures['abs_rms_mean'] = np.nan
+		else:
+			self.source_path == '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source)
 		self.cores = cores
 
 	def update_subjects(self,subjects):
@@ -69,8 +93,10 @@ class dataset:
 		self.task = task
 		if self.parcels == 'Schaefer417': n_parcels = 400
 		if self.parcels == 'Schaefer217': n_parcels = 200
-		if self.parcels == 'gordon': n_parcels = 333
+		if self.parcels == 'Gordon': n_parcels = 333
 		if self.sub_cortex == True: n_parcels = n_parcels +50
+
+		dcan_swap = {'Schaefer417':'Yeo'}
 
 		self.matrix = []
 		qc_df = []
@@ -78,7 +104,11 @@ class dataset:
 		for subject in self.subject_measures.subject.values:
 			if self.source == 'hcpya': 
 				glob_matrices = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
-				
+				glob_qc = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+			if self.source == 'hcpd-dcan':
+				self.parcels = 
+				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.ptseries.nii '.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}/Movement_AbsoluteRMS_mean.txt'.format(self.source_path,subject,self.task))				
 			if len(glob_matrices)==0:
 				missing.append(subject)
 				continue
@@ -92,8 +122,7 @@ class dataset:
 				subject_matrices = np.nanmean(subject_matrices,axis=0)
 			np.fill_diagonal(subject_matrices,np.nan)
 			self.matrix.append(subject_matrices)
-
-			glob_qc = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+			
 			columns = pd.read_csv(glob_qc[0]).columns
 			sub_df = pd.DataFrame(columns=columns)
 			for qc in glob_qc:

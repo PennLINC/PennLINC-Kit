@@ -22,19 +22,20 @@ class self:
 """
 for testing
 source = 'hcpd-dcan'
+source = 'pnc'
 matrix_type = 'fc'
 task = '**'
 parcels = 'Schaefer417'
 sub_cortex = False
 cores = 1
 """
-df = pd.read_csv('/cbica/projects/hcpd/data/HCA_LS_2.0_subject_completeness.csv',skiprows=[1])
-neo = pd.read_csv('/cbica/projects/hcpd/data/nffi01.txt',skiprows=[1],sep='\t')
-# demo = pd.read_csv('socdem01.txt',skiprows=[1],sep='\t')
-df = df.merge(neo,'left',on='subjectkey',suffixes=[None,'neo'])
-# df = df.merge(demo,'left',on='subjectkey',suffixes=[None,'demo'])
-df.to_csv('/cbica/projects/hcpd/data/hcpd_demographics.csv',index=False)
 
+# df = pd.read_csv('/cbica/projects/hcpd/data/HCA_LS_2.0_subject_completeness.csv',skiprows=[1])
+# neo = pd.read_csv('/cbica/projects/hcpd/data/nffi01.txt',skiprows=[1],sep='\t')
+# # demo = pd.read_csv('socdem01.txt',skiprows=[1],sep='\t')
+# df = df.merge(neo,'left',on='subjectkey',suffixes=[None,'neo'])
+# # df = df.merge(demo,'left',on='subjectkey',suffixes=[None,'demo'])
+# df.to_csv('/cbica/projects/hcpd/data/hcpd_demographics.csv',index=False)
 
 class dataset:
 	"""
@@ -53,7 +54,7 @@ class dataset:
 			self.subject_measures = pd.read_csv('{0}/data/hcpd_demographics.csv'.format(self.source_path))
 			self.subject_measures['abs_rms_mean'] = np.nan
 		else:
-			self.source_path == '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source)
+			self.source_path == '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source.upper())
 		self.cores = cores
 
 	def update_subjects(self,subjects):

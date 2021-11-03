@@ -3,84 +3,80 @@ import numpy as np
 import os
 from urllib.request import urlretrieve
 import pkg_resources
+import nibabel as nib
 import pandas as pd
 from multiprocessing import Pool
 from functools import partial
 from itertools import repeat
 import pickle
+import h5py
+from os.path import expanduser
+
+
+
+class self:
+	def __init__(self):
+		pass
+
+
+"""
+#for testing
+source = 'pnc'
+matrix_type = 'fc'
+task = '**'
+parcels = 'Schaefer417'
+sub_cortex = False
+session = '**'
+cores = 1
+"""
 
 class dataset:
 	"""
-	This is the main object to use to load a dataset
+	This is the main object to use to load an rbc dataset
+	source: str, the name of the dataset
+	cores: int, the number of cores you will use for analysis
 	"""
-	def __init__(self, source='pnc',cores=1):
+	def __init__(self, source='hcpya',cores=1):
 		self.source = source
+		if self.source == 'hcpya': 
+			self.source_path = '/cbica/projects/hcpya/'
+			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv').rename(columns={'Subject':'subject'})
+		elif self.source == 'hcpd-dcan':
+			self.source_path = '/cbica/projects/hcpd/'
+			self.subject_measures = pd.read_csv('{0}/data/hcpd_demographics.csv'.format(self.source_path),low_memory=False)
+			self.subject_measures = self.subject_measures.rename(columns={'src_subject_id':'subject'})
+			self.subject_measures.subject = self.subject_measures.subject.str.replace('HCD','')     
+		else:
+			self.source_path = '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source.upper())
+			self.subject_measures = pd.read_csv('/cbica/projects/RBC/RBC_DERIVATIVES/{0}/{1}_demographics.csv'.format(self.source.upper(),self.source))
+			if self.source=='pnc':
+				self.subject_measures = self.subject_measures.rename(columns={'reid':'subject'})
 		self.cores = cores
-		self.data_path = '/gpfs/fs001/cbica/home/bertolem/{0}'.format(source)
-		if self.source == 'pnc':
-			self.subject_column = 'scanid'
-			self.measures = pd.read_csv('{0}/demographics/n1601_demographics_go1_20161212.csv'.format(self.data_path))
-			self.subject_column = {'scanid':'subject'}
-			self.measures = self.measures.rename(columns=self.subject_column)
-			clinical = pd.read_csv('{0}/clinical/n1601_goassess_itemwise_bifactor_scores_20161219.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(clinical,how='outer',on='subject')
-			clinical_dict = pd.read_csv('{0}/clinical/goassess_clinical_factor_scores_dictionary.txt'.format(self.data_path),sep='\t')[24:29].drop(columns=['variablePossibleValues','source', 'notes'])
-			self.data_dict = {}
-			for k,i in zip(clinical_dict.variableName.values,clinical_dict.variableDefinition.values):
-				self.data_dict[k.strip(' ')] = i.strip(' ')
-			cognitive = pd.read_csv('{0}/cnb/n1601_cnb_factor_scores_tymoore_20151006.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(cognitive,how='outer',on='subject')
-			cognitive_dict = pd.read_csv('{0}/cnb/cnb_factor_scores_dictionary.txt'.format(self.data_path),sep='\t').drop(columns=['source'])
-			for k,i in zip(cognitive_dict.variableName.values,cognitive_dict.variableDefinition.values):
-				self.data_dict[k.strip(' ')] = i.strip(' ')
-			cog_factors = pd.read_csv('{0}/cnb/cog_factors.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(cog_factors,how='outer',on='subject')
-		if self.source == 'hcp':
-			self.subject_column = 'Subject'
-			self.measures = pd.read_csv('{0}/unrestricted_mb3152_2_25_2021_8_59_45.csv'.format(self.data_path))
-			self.subject_column = {'Subject':'subject'}
-			self.measures = self.measures.rename(columns=self.subject_column)
+		self.subject_measures['motion'] = np.nan
 
 	def update_subjects(self,subjects):
-		self.measures = self.measures[self.measures.subject.isin(subjects)]
+		selfsubject_measures = selfsubject_measures[selfsubject_measures.subject.isin(subjects)]
 
-	def methods(self):
+	def get_methods(self,modality='functional'):
 		resource_package = 'pennlinckit'
-		resource_path = '{0}_boiler.txt'.format(self.source)
-		path = pkg_resources.resource_stream(resource_package, resource_path)
-		f = open(path.name, 'r').read()
-		print (f)
-
-	def asl(self):
-		self.asl = 0
-
-	def imaging_qc(self):
-		if self.source == 'pnc':
-			if self.matrix_type == 'rest':
-				qc = pd.read_csv('{0}/neuroimaging/rest/n1601_RestQAData_20170714.csv'.format(self.data_path)).rename(columns=self.subject_column)
-				qa_dict = pd.read_csv('{0}/neuroimaging/rest/restQADataDictionary_20161010.csv'.format(self.data_path))
-				for k,i in zip(qa_dict.columnName.values,qa_dict.columnDescription.values):
-					self.data_dict[k] = i
-			if self.matrix_type == 'diffusion_pr':
-				1/0
-		if self.source == 'hcp':
-			qc = np.nan
-		return qc
+		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
+		return np.loadtxt(resource_path)
 
 
-
-	def load_matrices(self, matrix_type, parcels='schaefer'):
+	def load_matrices(self, matrix_type, task='**', session = '**',parcels='Schaefer417',sub_cortex=False):
 		"""
-		get a matrix from this dataset
+		load matrix from this dataset
 	    ----------
 	    parameters
 	    ----------
-	    matrix_type: what type of matrix do you want? can be a task, resting-state, diffusion
-		parcels: schaefer or gordon
+	    matrix_type: str, what type of matrix do you want? bold, diffusion (name the type)
+		wildcard: str,
+		parcels: str, schaefer, gordon, yeo,
+		sub_cortex: bool, do you want this (https://github.com/yetianmed/subcortex) added on?
 	    ----------
 		returns
 	    ----------
-	    out : mean numpy matrix, fisher-z transformed before meaning, np.nan down the diagonal
+	    out : numpy matrix, fisher-z transformed, np.nan down the diagonal
 	    ----------
 		pnc examples
 	    ----------
@@ -90,63 +86,92 @@ class dataset:
 		"""
 
 		self.matrix_type = matrix_type
-
+		self.sub_cortex = sub_cortex
 		self.parcels = parcels
-		if self.parcels == 'schaefer': n_parcels = 400
-		if self.parcels == 'gordon': n_parcels = 333
+		self.task = task
+		self.session = session
+		if self.parcels == 'Schaefer417': n_parcels = 400
+		if self.parcels == 'Schaefer217': n_parcels = 200
+		if self.parcels == 'Gordon': n_parcels = 333
+		if self.sub_cortex == True: n_parcels = n_parcels +50
 
-
-		if self.source != 'hcp':
-			qc = self.imaging_qc()
-			self.measures = self.measures.merge(qc,how='inner',on='subject')
 		self.matrix = []
 		missing = []
-		for subject in self.measures.subject.values:
-			if self.source == 'pnc':
-				if self.matrix_type == 'rest':
-					if self.parcels == 'gordon':
-						matrix_path = '/{0}/neuroimaging/rest/restNetwork_gordon/GordonPNCNetworks/{1}_GordonPNC_network.txt'.format(self.data_path,subject)
-					if self.parcels == 'schaefer':
-						matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
-			if self.source == 'hcp':
-				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
-			try:
-				m = np.load(matrix_path)
-				self.matrix.append(m)
-			except:
-				missing.append(subject)
+		for subject in self.subject_measures.subject.values:
+			if self.source == 'hcpya': 
+				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+			if self.source == 'hcpd-dcan':
+				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}/Movement_AbsoluteRMS_mean.txt'.format(self.source_path,subject,self.task))			
+			else: #RBC datasets
+				glob_matrices = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_atlas-{4}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.session,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.session,self.task))	
 
+
+			if len(glob_matrices)==0:
+				missing.append(subject)
+				continue
+			subject_matrices = []
+			for matrix_path in glob_matrices:
+				m = nib.load(matrix_path).get_fdata()
+				np.fill_diagonal(m,0)
+				m = np.arctanh(m)
+				subject_matrices.append(m)
+			if len(glob_matrices)>1:
+				subject_matrices = np.nanmean(subject_matrices,axis=0)
+			else: subject_matrices = subject_matrices[0]  
+			np.fill_diagonal(subject_matrices,np.nan)
+			self.matrix.append(subject_matrices)
+			
+			if self.source == 'hcpd-dcan':
+				RMS = []
+				for qc in glob_qc:
+					RMS.append(pd.read_csv(qc,header=None)[0].values[0])
+				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='motion'] = np.mean(RMS)
+				
+			else:
+				columns = pd.read_csv(glob_qc[0]).columns
+				sub_df = pd.DataFrame(columns=columns)
+				for qc in glob_qc:
+					sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
+				sub_df = sub_df.groupby('sub').mean()
+				sub_df['subject'] = sub_df.index
+				if 'qc_df' not in locals():
+					qc_df = sub_df
+				else: qc_df = qc_df.append(sub_df,ignore_index=True)
+
+		if self.source != 'hcpd-dcan':self.subject_measures.merge(qc_df,on='subject')
 		for missing_sub in missing:
-			missing_sub = self.measures.loc[self.measures.subject == missing_sub]
-			self.measures = self.measures.drop(missing_sub.index,axis=0)
+			missing_sub = self.subject_measures.loc[self.subject_measures.subject == missing_sub]
+			self.subject_measures = self.subject_measures.drop(missing_sub.index,axis=0)
 		self.matrix = np.array(self.matrix)
-		assert self.matrix.shape[0] == self.measures.shape[0]
+		assert self.matrix.shape[0] == self.subject_measures.shape[0]
 
 
 	def filter(self,way,value=None,column=None):
 		if way == '==':
-			self.matrix = self.matrix[self.measures[column]==value]
-			self.measures = self.measures[self.measures[column]==value]
+			self.matrix = self.matrix[selfsubject_measures[column]==value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]==value]
 		if way == '!=':
-			self.matrix = self.matrix[self.measures[column]!=value]
-			self.measures = self.measures[self.measures[column]!=value]
+			self.matrix = self.matrix[self.subject_measures[column]!=value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]!=value]
 		if way == 'np.nan':
-			self.matrix = self.matrix[np.isnan(self.measures[column])==False]
-			self.measures = self.measures[np.isnan(self.measures[column])==False]
+			self.matrix = self.matrix[np.isnan(self.subject_measures[column])==False]
+			self.subject_measures = self.subject_measures[np.isnan(self.subject_measures[column])==False]
 		if way == '>':
-			self.matrix = self.matrix[self.measures[column]>value]
-			self.measures = self.measures[self.measures[column]>value]
+			self.matrix = self.matrix[self.subject_measures[column]>value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]>value]
 		if way == '<':
-			self.matrix = self.matrix[self.measures[column]<value]
-			self.measures = self.measures[self.measures[column]<value]
+			self.matrix = self.matrix[self.subject_measures[column]<value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]<value]
 		if way == 'matrix':
 			mask = np.isnan(self.matrix).sum(axis=1).sum(axis=1) == self.matrix.shape[-1]
-			self.measures = self.measures[mask]
+			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
-		if way == 'cognitive':
-			factors = ['F1_Exec_Comp_Res_Accuracy_RESIDUALIZED','F2_Social_Cog_Accuracy_RESIDUALIZED','F3_Memory_Accuracy_RESIDUALIZED']
-			mask = np.isnan(self.measures[factors]).sum(axis=1) == 0
-			self.measures = self.measures[mask]
+		if way == 'has_subject_measure':
+			mask = np.isnan(self.subject_measures[value]) == False
+			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
 
 

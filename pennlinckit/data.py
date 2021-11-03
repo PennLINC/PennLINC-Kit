@@ -20,22 +20,15 @@ class self:
 
 
 """
-for testing
-source = 'hcpd-dcan'
+#for testing
 source = 'pnc'
 matrix_type = 'fc'
 task = '**'
 parcels = 'Schaefer417'
 sub_cortex = False
+session = '**'
 cores = 1
 """
-
-# df = pd.read_csv('/cbica/projects/hcpd/data/HCA_LS_2.0_subject_completeness.csv',skiprows=[1])
-# neo = pd.read_csv('/cbica/projects/hcpd/data/nffi01.txt',skiprows=[1],sep='\t')
-# # demo = pd.read_csv('socdem01.txt',skiprows=[1],sep='\t')
-# df = df.merge(neo,'left',on='subjectkey',suffixes=[None,'neo'])
-# # df = df.merge(demo,'left',on='subjectkey',suffixes=[None,'demo'])
-# df.to_csv('/cbica/projects/hcpd/data/hcpd_demographics.csv',index=False)
 
 class dataset:
 	"""
@@ -43,22 +36,26 @@ class dataset:
 	source: str, the name of the dataset
 	cores: int, the number of cores you will use for analysis
 	"""
-	def __init__(self, source='hcpya',cores=1,source_path=):
-
+	def __init__(self, source='hcpya',cores=1):
 		self.source = source
 		if self.source == 'hcpya': 
 			self.source_path = '/cbica/projects/hcpya/'
 			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv').rename(columns={'Subject':'subject'})
 		elif self.source == 'hcpd-dcan':
 			self.source_path = '/cbica/projects/hcpd/'
-			self.subject_measures = pd.read_csv('{0}/data/hcpd_demographics.csv'.format(self.source_path))
-			self.subject_measures['abs_rms_mean'] = np.nan
+			self.subject_measures = pd.read_csv('{0}/data/hcpd_demographics.csv'.format(self.source_path),low_memory=False)
+			self.subject_measures = self.subject_measures.rename(columns={'src_subject_id':'subject'})
+			self.subject_measures.subject = self.subject_measures.subject.str.replace('HCD','')     
 		else:
-			self.source_path == '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source.upper())
+			self.source_path = '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source.upper())
+			self.subject_measures = pd.read_csv('/cbica/projects/RBC/RBC_DERIVATIVES/{0}/{1}_demographics.csv'.format(self.source.upper(),self.source))
+			if self.source=='pnc':
+				self.subject_measures = self.subject_measures.rename(columns={'reid':'subject'})
 		self.cores = cores
+		self.subject_measures['motion'] = np.nan
 
 	def update_subjects(self,subjects):
-		self.measures = self.measures[self.measures.subject.isin(subjects)]
+		selfsubject_measures = selfsubject_measures[selfsubject_measures.subject.isin(subjects)]
 
 	def get_methods(self,modality='functional'):
 		resource_package = 'pennlinckit'
@@ -66,7 +63,7 @@ class dataset:
 		return np.loadtxt(resource_path)
 
 
-	def load_matrices(self, matrix_type, task='**', parcels='Schaefer417',sub_cortex=False):
+	def load_matrices(self, matrix_type, task='**', session = '**',parcels='Schaefer417',sub_cortex=False):
 		"""
 		load matrix from this dataset
 	    ----------
@@ -92,24 +89,26 @@ class dataset:
 		self.sub_cortex = sub_cortex
 		self.parcels = parcels
 		self.task = task
+		self.session = session
 		if self.parcels == 'Schaefer417': n_parcels = 400
 		if self.parcels == 'Schaefer217': n_parcels = 200
 		if self.parcels == 'Gordon': n_parcels = 333
 		if self.sub_cortex == True: n_parcels = n_parcels +50
 
-		dcan_swap = {'Schaefer417':'Yeo'}
-
 		self.matrix = []
-		qc_df = []
 		missing = []
 		for subject in self.subject_measures.subject.values:
 			if self.source == 'hcpya': 
-				glob_matrices = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
-				glob_qc = glob.glob('/{0}/xcp/results/xcp_abcd/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
 			if self.source == 'hcpd-dcan':
-				self.parcels = 
-				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.ptseries.nii '.format(self.source_path,subject,self.task,self.parcels))
-				glob_qc = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}/Movement_AbsoluteRMS_mean.txt'.format(self.source_path,subject,self.task))				
+				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}/Movement_AbsoluteRMS_mean.txt'.format(self.source_path,subject,self.task))			
+			else: #RBC datasets
+				glob_matrices = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_atlas-{4}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.session,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.session,self.task))	
+
+
 			if len(glob_matrices)==0:
 				missing.append(subject)
 				continue
@@ -121,52 +120,58 @@ class dataset:
 				subject_matrices.append(m)
 			if len(glob_matrices)>1:
 				subject_matrices = np.nanmean(subject_matrices,axis=0)
+			else: subject_matrices = subject_matrices[0]  
 			np.fill_diagonal(subject_matrices,np.nan)
 			self.matrix.append(subject_matrices)
 			
-			columns = pd.read_csv(glob_qc[0]).columns
-			sub_df = pd.DataFrame(columns=columns)
-			for qc in glob_qc:
-				sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
-			sub_df = sub_df.groupby('sub').mean()
-			sub_df['subject'] = sub_df.index
-			qc_df.append(sub_df)
+			if self.source == 'hcpd-dcan':
+				RMS = []
+				for qc in glob_qc:
+					RMS.append(pd.read_csv(qc,header=None)[0].values[0])
+				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='motion'] = np.mean(RMS)
+				
+			else:
+				columns = pd.read_csv(glob_qc[0]).columns
+				sub_df = pd.DataFrame(columns=columns)
+				for qc in glob_qc:
+					sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
+				sub_df = sub_df.groupby('sub').mean()
+				sub_df['subject'] = sub_df.index
+				if 'qc_df' not in locals():
+					qc_df = sub_df
+				else: qc_df = qc_df.append(sub_df,ignore_index=True)
 
+		if self.source != 'hcpd-dcan':self.subject_measures.merge(qc_df,on='subject')
 		for missing_sub in missing:
 			missing_sub = self.subject_measures.loc[self.subject_measures.subject == missing_sub]
 			self.subject_measures = self.subject_measures.drop(missing_sub.index,axis=0)
 		self.matrix = np.array(self.matrix)
-		assert self.matrix.shape[0] == self.measures.shape[0]
+		assert self.matrix.shape[0] == self.subject_measures.shape[0]
 
-		df = qc_df[0]
-		for df_idx in range(1,len(qc_df)):
-			df = df.append(qc_df[df_idx],ignore_index=True)
-		self.subject_measures = self.subject_measures.merge(df,how='inner',on='subject')
 
 	def filter(self,way,value=None,column=None):
 		if way == '==':
-			self.matrix = self.matrix[self.measures[column]==value]
-			self.measures = self.measures[self.measures[column]==value]
+			self.matrix = self.matrix[selfsubject_measures[column]==value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]==value]
 		if way == '!=':
-			self.matrix = self.matrix[self.measures[column]!=value]
-			self.measures = self.measures[self.measures[column]!=value]
+			self.matrix = self.matrix[self.subject_measures[column]!=value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]!=value]
 		if way == 'np.nan':
-			self.matrix = self.matrix[np.isnan(self.measures[column])==False]
-			self.measures = self.measures[np.isnan(self.measures[column])==False]
+			self.matrix = self.matrix[np.isnan(self.subject_measures[column])==False]
+			self.subject_measures = self.subject_measures[np.isnan(self.subject_measures[column])==False]
 		if way == '>':
-			self.matrix = self.matrix[self.measures[column]>value]
-			self.measures = self.measures[self.measures[column]>value]
+			self.matrix = self.matrix[self.subject_measures[column]>value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]>value]
 		if way == '<':
-			self.matrix = self.matrix[self.measures[column]<value]
-			self.measures = self.measures[self.measures[column]<value]
+			self.matrix = self.matrix[self.subject_measures[column]<value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]<value]
 		if way == 'matrix':
 			mask = np.isnan(self.matrix).sum(axis=1).sum(axis=1) == self.matrix.shape[-1]
-			self.measures = self.measures[mask]
+			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
-		if way == 'cognitive':
-			factors = ['F1_Exec_Comp_Res_Accuracy_RESIDUALIZED','F2_Social_Cog_Accuracy_RESIDUALIZED','F3_Memory_Accuracy_RESIDUALIZED']
-			mask = np.isnan(self.measures[factors]).sum(axis=1) == 0
-			self.measures = self.measures[mask]
+		if way == 'has_subject_measure':
+			mask = np.isnan(self.subject_measures[value]) == False
+			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
 
 

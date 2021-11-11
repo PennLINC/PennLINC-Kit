@@ -3,6 +3,7 @@ import numpy as np
 import os
 from urllib.request import urlretrieve
 import pkg_resources
+import nibabel as nib
 import pandas as pd
 from multiprocessing import Pool
 from functools import partial
@@ -17,73 +18,45 @@ class self:
 	def __init__(self):
 		pass
 
-def clone(self):
-	"""
-	method of dataset
-	"""
-	orig_dir = os.getcwd()
-	os.makedirs(self.data_path,exist_ok=True)
-	os.chdir(self.data_path)
-	if self.source == 'hcpya': os.system('datalad clone /cbica/home/bertolem/xcp_hcp/fcon/')
-	else: os.system('datalad clone /cbica/projects/RBC/production/{0}/xcp/'.format(self.source.upper()))
-	
-def clone(dataset):
 
-	cmd = 'datalad clone {0}'.format(self.clone_path)
-	os.system(cmd)
-	# $ cd qsiprep_outputs
-	# $ # Unlock one of the results zip files
-	# $ datalad get sub-1_qsiprep-0.14.2.zip
-	# $ datalad unlock sub-1_qsiprep-0.14.2.zip
-	# $ unzip sub-1_qsiprep-0.14.2.zip
-
-	os.chdir('{0}/fcon'.format(self.data_path))
-	os.system('datalad get group_matrices.zip')
-	os.system('datalad unlock group_matrices.zip')
-	os.system('git annex dead here')
+"""
+#for testing
+source = 'hcpya'
+matrix_type = 'fc'
+task = '**'
+parcels = 'Schaefer417'
+sub_cortex = False
+session = '**'
+cores = 1
+fisher_z = True
+"""
 
 class dataset:
 	"""
 	This is the main object to use to load an rbc dataset
-	If the dataset does not exist yet, it will clone & get it, default
-	is to ~/rbc, but you can edit this as 'rbc_path'
-
 	source: str, the name of the dataset
 	cores: int, the number of cores you will use for analysis
-	rbc_path: str, directory, where you want to store, or where you
-	have stored, your rbc data, default is ~/rbc
 	"""
-	def __init__(self, source='pnc',rbc_path=None,source_path=None,cores=1):
-		
-		
-		#just the name of the dataset
-		self.source = source.upper()
-		#there are some functions that use multiple cores
+	def __init__(self, source='hcpya',cores=1):
+		self.source = source
+		if self.source == 'hcpya': 
+			self.source_path = '/cbica/projects/hcpya/'
+			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv').rename(columns={'Subject':'subject'})
+		elif self.source == 'hcpd-dcan':
+			self.source_path = '/cbica/projects/hcpd/'
+			self.subject_measures = pd.read_csv('{0}/data/hcpd_demographics.csv'.format(self.source_path),low_memory=False)
+			self.subject_measures = self.subject_measures.rename(columns={'src_subject_id':'subject'})
+			self.subject_measures.subject = self.subject_measures.subject.str.replace('HCD','')     
+		else:
+			self.source_path = '/cbica/projects/RBC/RBC_DERIVATIVES/{0}'.format(self.source.upper())
+			self.subject_measures = pd.read_csv('/cbica/projects/RBC/RBC_DERIVATIVES/{0}/{1}_demographics.csv'.format(self.source.upper(),self.source))
+			if self.source=='pnc':
+				self.subject_measures = self.subject_measures.rename(columns={'reid':'subject'})
 		self.cores = cores
-		#where does all of your rbc data live?
-		if rbc_path == None: rbc_path='/'.join([expanduser("~"),'rbc'])
-		self.rbc_path = rbc_path
-		#where are we cloning from?
-		if source_path == None: source_path = '/cbica/projects/RBC/production/'
-		self.source_path = source_path
-		#what is the clone path?
-		self.clone_path = '{0}{1}/xcp/output_ria#~data'.format(self.source_path,self.source)
-		#check to see if data exists, if it does not, clone it
-		if os.path.exists('{0}/{1}'.format(self.rbc_path,self.source)) == False:
-			
-
-		# self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
-		# self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition
-		# self.data_narratives #this is the history of how we got it into BIDS format pre fmriprep
-
-	def clone():
-		os.makedirs(self.rbc_path)
-		os.chdir(self.rbc_path)
-		cmd = 'datalad clone {0}'.format(self.clone_path)
-		os.system(cmd)
+		self.subject_measures['motion'] = np.nan
 
 	def update_subjects(self,subjects):
-		self.measures = self.measures[self.measures.subject.isin(subjects)]
+		selfsubject_measures = self.subject_measures[self.subject_measures.subject.isin(subjects)]
 
 	def get_methods(self,modality='functional'):
 		resource_package = 'pennlinckit'
@@ -91,7 +64,7 @@ class dataset:
 		return np.loadtxt(resource_path)
 
 
-	def load_matrices(self, matrix_type, wildcard='ses-1', parcels='schaefer',sub_cortex=False):
+	def load_matrices(self, matrix_type, task='**', session = '**',parcels='Schaefer417',sub_cortex=False,fisher_z=True):
 		"""
 		load matrix from this dataset
 	    ----------
@@ -104,7 +77,7 @@ class dataset:
 	    ----------
 		returns
 	    ----------
-	    out : numpy matrix, fisher-z transformed before meaning(if done), np.nan down the diagonal
+	    out : numpy matrix, fisher-z transformed, np.nan down the diagonal
 	    ----------
 		pnc examples
 	    ----------
@@ -114,67 +87,98 @@ class dataset:
 		"""
 
 		self.matrix_type = matrix_type
-
+		self.sub_cortex = sub_cortex
 		self.parcels = parcels
-		if self.parcels == 'schaefer': n_parcels = 400
-		if self.parcels == 'gordon': n_parcels = 333
+		self.task = task
+		self.session = session
+		self.fisher_z = fisher_z
+		if self.parcels == 'Schaefer417': n_parcels = 400
+		if self.parcels == 'Schaefer217': n_parcels = 200
+		if self.parcels == 'Gordon': n_parcels = 333
+		if self.sub_cortex == True: n_parcels = n_parcels +50
 
-		if self.sub_cortex == True:
-			n_parcels = n_parcels +50
-
-
-		if self.source != 'hcp':
-			qc = self.imaging_qc()
-			self.measures = self.measures.merge(qc,how='inner',on='subject')
 		self.matrix = []
 		missing = []
-		for subject in self.measures.subject.values:
-			if self.source == 'pnc':
-				if self.matrix_type == 'rest':
-					if self.parcels == 'gordon':
-						matrix_path = '/{0}/neuroimaging/rest/restNetwork_gordon/GordonPNCNetworks/{1}_GordonPNC_network.txt'.format(self.data_path,subject)
-					if self.parcels == 'schaefer':
-						matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
-			if self.source == 'hcp':
-				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
+		for subject in self.subject_measures.subject.values:
+			if self.source == 'hcpya': 
+				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+			elif self.source == 'hcpd-dcan':
+				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}/Movement_AbsoluteRMS_mean.txt'.format(self.source_path,subject,self.task))			
+			else: #RBC datasets
+				glob_matrices = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_atlas-{4}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.session,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.session,self.task))	
 
-			try:
-				m = np.load(matrix_path)
-				self.matrix.append(m)
-			except:
+			#if no matrices, save to remove from self.subject_measures
+			if len(glob_matrices)==0:
+				print (subject)
 				missing.append(subject)
+				continue
+			if len(glob_matrices)==1:
+				subject_matrices = nib.load(glob_matrices[0]).get_fdata()
+				np.fill_diagonal(subject_matrices,0.0)
+				if self.fisher_z: subject_matrices = np.arctanh(subject_matrices)
+			else:
+				subject_matrices = []
+				for matrix_path in glob_matrices:
+					m = nib.load(matrix_path).get_fdata()
+					np.fill_diagonal(m,0)
+					if self.fisher_z: m = np.arctanh(m)
+					subject_matrices.append(m)
+				subject_matrices = np.nanmean(subject_matrices,axis=0)
 
+			np.fill_diagonal(subject_matrices,np.nan)
+			self.matrix.append(subject_matrices)
+			
+			if self.source == 'hcpd-dcan':
+				RMS = []
+				for qc in glob_qc:
+					RMS.append(pd.read_csv(qc,header=None)[0].values[0])
+				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='motion'] = np.mean(RMS)
+				
+			else:
+				columns = pd.read_csv(glob_qc[0]).columns
+				sub_df = pd.DataFrame(columns=columns)
+				for qc in glob_qc:
+					sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
+				sub_df = sub_df.groupby('sub').mean()
+				sub_df['subject'] = sub_df.index
+				if 'qc_df' in locals(): qc_df = qc_df.append(sub_df,ignore_index=True)
+				else: qc_df = sub_df.copy()
+
+
+		if self.source != 'hcpd-dcan':self.subject_measures=self.subject_measures.merge(qc_df,on='subject')
 		for missing_sub in missing:
-			missing_sub = self.measures.loc[self.measures.subject == missing_sub]
-			self.measures = self.measures.drop(missing_sub.index,axis=0)
+			missing_sub = self.subject_measures.loc[self.subject_measures.subject == missing_sub]
+			self.subject_measures = self.subject_measures.drop(missing_sub.index,axis=0)
 		self.matrix = np.array(self.matrix)
-		assert self.matrix.shape[0] == self.measures.shape[0]
+		assert self.matrix.shape[0] == self.subject_measures.shape[0]
 
 
 	def filter(self,way,value=None,column=None):
 		if way == '==':
-			self.matrix = self.matrix[self.measures[column]==value]
-			self.measures = self.measures[self.measures[column]==value]
+			self.matrix = self.matrix[self.subject_measures[column]==value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]==value]
 		if way == '!=':
-			self.matrix = self.matrix[self.measures[column]!=value]
-			self.measures = self.measures[self.measures[column]!=value]
+			self.matrix = self.matrix[self.subject_measures[column]!=value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]!=value]
 		if way == 'np.nan':
-			self.matrix = self.matrix[np.isnan(self.measures[column])==False]
-			self.measures = self.measures[np.isnan(self.measures[column])==False]
+			self.matrix = self.matrix[np.isnan(self.subject_measures[column])==False]
+			self.subject_measures = self.subject_measures[np.isnan(self.subject_measures[column])==False]
 		if way == '>':
-			self.matrix = self.matrix[self.measures[column]>value]
-			self.measures = self.measures[self.measures[column]>value]
+			self.matrix = self.matrix[self.subject_measures[column]>value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]>value]
 		if way == '<':
-			self.matrix = self.matrix[self.measures[column]<value]
-			self.measures = self.measures[self.measures[column]<value]
+			self.matrix = self.matrix[self.subject_measures[column]<value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]<value]
 		if way == 'matrix':
 			mask = np.isnan(self.matrix).sum(axis=1).sum(axis=1) == self.matrix.shape[-1]
-			self.measures = self.measures[mask]
+			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
-		if way == 'cognitive':
-			factors = ['F1_Exec_Comp_Res_Accuracy_RESIDUALIZED','F2_Social_Cog_Accuracy_RESIDUALIZED','F3_Memory_Accuracy_RESIDUALIZED']
-			mask = np.isnan(self.measures[factors]).sum(axis=1) == 0
-			self.measures = self.measures[mask]
+		if way == 'has_subject_measure':
+			mask = np.isnan(self.subject_measures[value]) == False
+			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
 
 

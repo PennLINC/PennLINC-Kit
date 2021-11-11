@@ -119,6 +119,7 @@ def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_lin
 		model_cv = KFold(folds)
 	self.prediction = np.zeros((self.measures.subject.values.shape[0]))
 	self.corrected_targets = self.targets.copy()
+	self.corrected_targets = np.nan
 	for train, test in model_cv.split(self.measures.subject.values):
 		x_train,y_train,x_test,y_test = self.features[train].copy(),self.targets[train].copy(),self.features[test].copy(),self.targets[test].copy()
 		if type(remove_linear_vars) != bool:
@@ -157,7 +158,7 @@ def submit_array_job(scipt_path,array_start,array_end,RAM=4,threads=1):
 	if os.path.isdir(sgedir) == False:
 		os.system('mkdir {0}'.format(sgedir))
 	command='qsub -t {0}-{1} -l h_vmem={2}G,s_vmem={2}G -pe threaded {3}\
-	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
+	 -R y -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
 	os.system(command)
 
 def submit_job(scipt_path,name,RAM=4,threads=1):
@@ -168,7 +169,7 @@ def submit_job(scipt_path,name,RAM=4,threads=1):
 	if os.path.isdir(sgedir) == False:
 		os.system('mkdir {0}'.format(sgedir))
 	command='qsub -l h_vmem={0}G,s_vmem={0}G -pe threaded {1}\
-	 -N {2} -V -j y -b y -o ~/sge/ -e ~/sge/ python {3}'.format(RAM,threads,name,scipt_path)
+	 -N {2} -R y -V -j y -b y -o ~/sge/ -e ~/sge/ python {3}'.format(RAM,threads,name,scipt_path)
 	os.system(command)
 
 def get_sge_task_id():
@@ -180,7 +181,7 @@ def get_sge_task_id():
 	subject = subjects[get_sge_task_id()]
 	"""
 	sge_task_id = subprocess.check_output(['echo $SGE_TASK_ID'],shell=True).decode()
-	return int(sge_task_id) -1
+	return int(sge_task_id)
 
 def load_dataset(name):
     return pickle.load(open("{0}".format(name), "rb"))

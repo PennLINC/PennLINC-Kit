@@ -181,7 +181,7 @@ def get_sge_task_id():
 	subject = subjects[get_sge_task_id()]
 	"""
 	sge_task_id = subprocess.check_output(['echo $SGE_TASK_ID'],shell=True).decode()
-	return int(sge_task_id) -1
+	return int(sge_task_id)
 
 def load_dataset(name):
     return pickle.load(open("{0}".format(name), "rb"))

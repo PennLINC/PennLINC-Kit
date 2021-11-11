@@ -119,6 +119,7 @@ def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_lin
 		model_cv = KFold(folds)
 	self.prediction = np.zeros((self.measures.subject.values.shape[0]))
 	self.corrected_targets = self.targets.copy()
+	self.corrected_targets = np.nan
 	for train, test in model_cv.split(self.measures.subject.values):
 		x_train,y_train,x_test,y_test = self.features[train].copy(),self.targets[train].copy(),self.features[test].copy(),self.targets[test].copy()
 		if type(remove_linear_vars) != bool:

@@ -21,13 +21,14 @@ class self:
 
 """
 #for testing
-source = 'pnc'
+source = 'hcpya'
 matrix_type = 'fc'
 task = '**'
 parcels = 'Schaefer417'
 sub_cortex = False
 session = '**'
 cores = 1
+fisher_z = True
 """
 
 class dataset:
@@ -55,7 +56,7 @@ class dataset:
 		self.subject_measures['motion'] = np.nan
 
 	def update_subjects(self,subjects):
-		selfsubject_measures = selfsubject_measures[selfsubject_measures.subject.isin(subjects)]
+		selfsubject_measures = self.subject_measures[self.subject_measures.subject.isin(subjects)]
 
 	def get_methods(self,modality='functional'):
 		resource_package = 'pennlinckit'
@@ -63,7 +64,7 @@ class dataset:
 		return np.loadtxt(resource_path)
 
 
-	def load_matrices(self, matrix_type, task='**', session = '**',parcels='Schaefer417',sub_cortex=False):
+	def load_matrices(self, matrix_type, task='**', session = '**',parcels='Schaefer417',sub_cortex=False,fisher_z=True):
 		"""
 		load matrix from this dataset
 	    ----------
@@ -90,6 +91,7 @@ class dataset:
 		self.parcels = parcels
 		self.task = task
 		self.session = session
+		self.fisher_z = fisher_z
 		if self.parcels == 'Schaefer417': n_parcels = 400
 		if self.parcels == 'Schaefer217': n_parcels = 200
 		if self.parcels == 'Gordon': n_parcels = 333
@@ -101,26 +103,31 @@ class dataset:
 			if self.source == 'hcpya': 
 				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
 				glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
-			if self.source == 'hcpd-dcan':
+			elif self.source == 'hcpd-dcan':
 				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
 				glob_qc = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}/Movement_AbsoluteRMS_mean.txt'.format(self.source_path,subject,self.task))			
 			else: #RBC datasets
 				glob_matrices = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_atlas-{4}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.session,self.task,self.parcels))
 				glob_qc = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.session,self.task))	
 
-
+			#if no matrices, save to remove from self.subject_measures
 			if len(glob_matrices)==0:
+				print (subject)
 				missing.append(subject)
 				continue
-			subject_matrices = []
-			for matrix_path in glob_matrices:
-				m = nib.load(matrix_path).get_fdata()
-				np.fill_diagonal(m,0)
-				m = np.arctanh(m)
-				subject_matrices.append(m)
-			if len(glob_matrices)>1:
+			if len(glob_matrices)==1:
+				subject_matrices = nib.load(glob_matrices[0]).get_fdata()
+				np.fill_diagonal(subject_matrices,0.0)
+				if self.fisher_z: subject_matrices = np.arctanh(subject_matrices)
+			else:
+				subject_matrices = []
+				for matrix_path in glob_matrices:
+					m = nib.load(matrix_path).get_fdata()
+					np.fill_diagonal(m,0)
+					if self.fisher_z: m = np.arctanh(m)
+					subject_matrices.append(m)
 				subject_matrices = np.nanmean(subject_matrices,axis=0)
-			else: subject_matrices = subject_matrices[0]  
+
 			np.fill_diagonal(subject_matrices,np.nan)
 			self.matrix.append(subject_matrices)
 			
@@ -137,11 +144,11 @@ class dataset:
 					sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
 				sub_df = sub_df.groupby('sub').mean()
 				sub_df['subject'] = sub_df.index
-				if 'qc_df' not in locals():
-					qc_df = sub_df
-				else: qc_df = qc_df.append(sub_df,ignore_index=True)
+				if 'qc_df' in locals(): qc_df = qc_df.append(sub_df,ignore_index=True)
+				else: qc_df = sub_df.copy()
 
-		if self.source != 'hcpd-dcan':self.subject_measures.merge(qc_df,on='subject')
+
+		if self.source != 'hcpd-dcan':self.subject_measures=self.subject_measures.merge(qc_df,on='subject')
 		for missing_sub in missing:
 			missing_sub = self.subject_measures.loc[self.subject_measures.subject == missing_sub]
 			self.subject_measures = self.subject_measures.drop(missing_sub.index,axis=0)
@@ -151,7 +158,7 @@ class dataset:
 
 	def filter(self,way,value=None,column=None):
 		if way == '==':
-			self.matrix = self.matrix[selfsubject_measures[column]==value]
+			self.matrix = self.matrix[self.subject_measures[column]==value]
 			self.subject_measures = self.subject_measures[self.subject_measures[column]==value]
 		if way == '!=':
 			self.matrix = self.matrix[self.subject_measures[column]!=value]

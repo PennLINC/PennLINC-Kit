@@ -158,7 +158,7 @@ def submit_array_job(scipt_path,array_start,array_end,RAM=4,threads=1):
 	if os.path.isdir(sgedir) == False:
 		os.system('mkdir {0}'.format(sgedir))
 	command='qsub -t {0}-{1} -l h_vmem={2}G,s_vmem={2}G -pe threaded {3}\
-	 -N data -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
+	 -N data -R -V -j y -b y -o ~/sge/ -e ~/sge/ python {4}'.format(array_start,array_end,RAM,threads,scipt_path)
 	os.system(command)
 
 def submit_job(scipt_path,name,RAM=4,threads=1):
@@ -169,7 +169,7 @@ def submit_job(scipt_path,name,RAM=4,threads=1):
 	if os.path.isdir(sgedir) == False:
 		os.system('mkdir {0}'.format(sgedir))
 	command='qsub -l h_vmem={0}G,s_vmem={0}G -pe threaded {1}\
-	 -N {2} -V -j y -b y -o ~/sge/ -e ~/sge/ python {3}'.format(RAM,threads,name,scipt_path)
+	 -N {2} -R -V -j y -b y -o ~/sge/ -e ~/sge/ python {3}'.format(RAM,threads,name,scipt_path)
 	os.system(command)
 
 def get_sge_task_id():

@@ -56,6 +56,50 @@ def vol2fslr(volume,out,roi=False,wb_path='/cbica/home/bertolem/workbench//bin_r
 	os.system('%s -cifti-create-dense-scalar %s.dscalar.nii -left-metric %s.L.func.gii -right-metric %s.R.func.gii' %(wb_path,out,out,out))
 
 
+def fs5_to_hcp(lh,rh,out,img_type='label',wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):	
+	resource_package = 'pennlinckit'
+	resource_path = 'standard_mesh_atlases/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii'
+	path_2_maps = pkg_resources.resource_filename(resource_package, resource_path).split('/') 
+	path_2_maps = '/'.join(path_2_maps.split('/')[:-1]) + '/resample_fsaverage/'
+	if img_type == 'label':out_img_type = 'dlabel'
+	if img_type == 'metric':out_img_type = 'dscalar'
+
+	lh_name = '{0}.32k_fs_LR.lh.{1}.gii'.format(out,out_img_type)
+	rh_name = '{0}.32k_fs_LR.rh.{1}.gii'.format(out,out_img_type)
+
+	lh_cmd = '{0} -{1}-resample {2} {3}/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii \
+		{3}/fs_LR-deformed_to-fsaverage.L.sphere.32k_fs_LR.surf.gii ADAP_BARY_AREA {4} \
+		-area-metrics {3}/fsaverage5.L.midthickness_va_avg.10k_fsavg_L.shape.gii \
+		{3}/fs_LR.L.midthickness_va_avg.32k_fs_LR.shape.gii'.format(wb_path,img_type,lh,path_2_maps,lh_name)
+
+	os.system(lh_cmd)
+	rh_cmd = '{0} -{1}-resample {2} {3}/fsaverage5_std_sphere.R.10k_fsavg_R.surf.gii \
+		{3}/fs_LR-deformed_to-fsaverage.R.sphere.32k_fs_LR.surf.gii ADAP_BARY_AREA {4} \
+		-area-metrics {3}/fsaverage5.R.midthickness_va_avg.10k_fsavg_R.shape.gii \
+		{3}/fs_LR.R.midthickness_va_avg.32k_fs_LR.shape.gii'.format(wb_path,img_type,rh,path_2_maps,rh_name)
+	os.system(rh_cmd)	
+
+def hcp_to_fs5(in,out,img_type='label',wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):
+	resource_package = 'pennlinckit'
+	resource_path = 'standard_mesh_atlases/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii'
+	path_2_maps = pkg_resources.resource_filename(resource_package, resource_path).split('/')
+	path_2_maps = '/'.join(path_2_maps.split('/')[:-1]) + '/resample_fsaverage/'
+	cmd = '{0} -cifti-separate {1} COLUMN -{2} CORTEX_LEFT {3}-LR.{2}.gii'.format(wb_path,in,img_type,out)
+	os.system(cmd)
+	cmd = '{0} -cifti-separate {1} COLUMN -{2} CORTEX_RIGHT {3}-RH.{2}.gii'.format(wb_path,in,img_type,out)
+	os.system(cmd)
+
+	rh_cmd = '{0} -{1}-resample {2}-LH.{1}.gii {3}/fs_LR-deformed_to-fsaverage.L.sphere.32k_fs_LR.surf.gii \
+		{3}/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii ADAP_BARY_AREA {2}-LH.{1}.gii -area-metrics \
+		{3}/fs_LR.L.midthickness_va_avg.32k_fs_LR.shape.gii \
+		{3}/fsaverage5.L.midthickness_va_avg.10k_fsavg_L.shape.gii'.format(wb_path,img_type,out,path_2_maps)
+	os.system(rh_cmd)
+
+	rh_cmd = '{0} -{1}-resample {2}-LH.{1}.gii {3}/fs_LR-deformed_to-fsaverage.R.sphere.32k_fs_LR.surf.gii \
+		{3}/fsaverage5_std_sphere.R.10k_fsavg_R.surf.gii ADAP_BARY_AREA {2}-RH.{1}.gii -area-metrics \
+		{3}/fs_LR.R.midthickness_va_avg.32k_fs_LR.shape.gii \
+		{3}/fsaverage5.R.midthickness_va_avg.10k_fsavg_L.shape.gii'.format(wb_path,img_type,out,path_2_maps)
+	os.system(rh_cmd)
 
 def cerebellum_vol2surf(input,output):
 	"""

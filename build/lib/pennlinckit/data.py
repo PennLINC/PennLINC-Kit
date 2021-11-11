@@ -8,79 +8,103 @@ from multiprocessing import Pool
 from functools import partial
 from itertools import repeat
 import pickle
+import h5py
+from os.path import expanduser
+
+
+
+class self:
+	def __init__(self):
+		pass
+
+def clone(self):
+	"""
+	method of dataset
+	"""
+	orig_dir = os.getcwd()
+	os.makedirs(self.data_path,exist_ok=True)
+	os.chdir(self.data_path)
+	if self.source == 'hcpya': os.system('datalad clone /cbica/home/bertolem/xcp_hcp/fcon/')
+	else: os.system('datalad clone /cbica/projects/RBC/production/{0}/xcp/'.format(self.source.upper()))
+	
+def clone(dataset):
+
+	cmd = 'datalad clone {0}'.format(self.clone_path)
+	os.system(cmd)
+	# $ cd qsiprep_outputs
+	# $ # Unlock one of the results zip files
+	# $ datalad get sub-1_qsiprep-0.14.2.zip
+	# $ datalad unlock sub-1_qsiprep-0.14.2.zip
+	# $ unzip sub-1_qsiprep-0.14.2.zip
+
+	os.chdir('{0}/fcon'.format(self.data_path))
+	os.system('datalad get group_matrices.zip')
+	os.system('datalad unlock group_matrices.zip')
+	os.system('git annex dead here')
 
 class dataset:
 	"""
-	This is the main object to use to load a dataset
+	This is the main object to use to load an rbc dataset
+	If the dataset does not exist yet, it will clone & get it, default
+	is to ~/rbc, but you can edit this as 'rbc_path'
+
+	source: str, the name of the dataset
+	cores: int, the number of cores you will use for analysis
+	rbc_path: str, directory, where you want to store, or where you
+	have stored, your rbc data, default is ~/rbc
 	"""
-	def __init__(self, source='pnc',cores=1):
-		self.source = source
+	def __init__(self, source='pnc',rbc_path=None,source_path=None,cores=1):
+		
+		
+		#just the name of the dataset
+		self.source = source.upper()
+		#there are some functions that use multiple cores
 		self.cores = cores
-		self.data_path = '/gpfs/fs001/cbica/home/bertolem/{0}'.format(source)
-		if self.source == 'pnc':
-			self.subject_column = 'scanid'
-			self.measures = pd.read_csv('{0}/demographics/n1601_demographics_go1_20161212.csv'.format(self.data_path))
-			self.subject_column = {'scanid':'subject'}
-			self.measures = self.measures.rename(columns=self.subject_column)
-			clinical = pd.read_csv('{0}/clinical/n1601_goassess_itemwise_bifactor_scores_20161219.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(clinical,how='outer',on='subject')
-			clinical_dict = pd.read_csv('{0}/clinical/goassess_clinical_factor_scores_dictionary.txt'.format(self.data_path),sep='\t')[24:29].drop(columns=['variablePossibleValues','source', 'notes'])
-			self.data_dict = {}
-			for k,i in zip(clinical_dict.variableName.values,clinical_dict.variableDefinition.values):
-				self.data_dict[k.strip(' ')] = i.strip(' ')
-			cognitive = pd.read_csv('{0}/cnb/n1601_cnb_factor_scores_tymoore_20151006.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(cognitive,how='outer',on='subject')
-			cognitive_dict = pd.read_csv('{0}/cnb/cnb_factor_scores_dictionary.txt'.format(self.data_path),sep='\t').drop(columns=['source'])
-			for k,i in zip(cognitive_dict.variableName.values,cognitive_dict.variableDefinition.values):
-				self.data_dict[k.strip(' ')] = i.strip(' ')
-			cog_factors = pd.read_csv('{0}/cnb/cog_factors.csv'.format(self.data_path)).rename(columns=self.subject_column)
-			self.measures = self.measures.merge(cog_factors,how='outer',on='subject')
-		if self.source == 'hcp':
-			self.subject_column = 'Subject'
-			self.measures = pd.read_csv('{0}/unrestricted_mb3152_2_25_2021_8_59_45.csv'.format(self.data_path))
-			self.subject_column = {'Subject':'subject'}
-			self.measures = self.measures.rename(columns=self.subject_column)
+		#where does all of your rbc data live?
+		if rbc_path == None: rbc_path='/'.join([expanduser("~"),'rbc'])
+		self.rbc_path = rbc_path
+		#where are we cloning from?
+		if source_path == None: source_path = '/cbica/projects/RBC/production/'
+		self.source_path = source_path
+		#what is the clone path?
+		self.clone_path = '{0}{1}/xcp/output_ria#~data'.format(self.source_path,self.source)
+		#check to see if data exists, if it does not, clone it
+		if os.path.exists('{0}/{1}'.format(self.rbc_path,self.source)) == False:
+			
+
+		# self.subject_measures #this is going to be the basic demographics csv, age, sex, iq, et cetera
+		# self.session_measures #this is going to be the sessions specific data, motion/qc, params, aquasition
+		# self.data_narratives #this is the history of how we got it into BIDS format pre fmriprep
+
+	def clone():
+		os.makedirs(self.rbc_path)
+		os.chdir(self.rbc_path)
+		cmd = 'datalad clone {0}'.format(self.clone_path)
+		os.system(cmd)
 
 	def update_subjects(self,subjects):
 		self.measures = self.measures[self.measures.subject.isin(subjects)]
 
-	def methods(self):
+	def get_methods(self,modality='functional'):
 		resource_package = 'pennlinckit'
-		resource_path = '{0}_boiler.txt'.format(self.source)
-		path = pkg_resources.resource_stream(resource_package, resource_path)
-		f = open(path.name, 'r').read()
-		print (f)
-
-	def asl(self):
-		self.asl = 0
-
-	def imaging_qc(self):
-		if self.source == 'pnc':
-			if self.matrix_type == 'rest':
-				qc = pd.read_csv('{0}/neuroimaging/rest/n1601_RestQAData_20170714.csv'.format(self.data_path)).rename(columns=self.subject_column)
-				qa_dict = pd.read_csv('{0}/neuroimaging/rest/restQADataDictionary_20161010.csv'.format(self.data_path))
-				for k,i in zip(qa_dict.columnName.values,qa_dict.columnDescription.values):
-					self.data_dict[k] = i
-			if self.matrix_type == 'diffusion_pr':
-				1/0
-		if self.source == 'hcp':
-			qc = np.nan
-		return qc
+		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
+		return np.loadtxt(resource_path)
 
 
-
-	def load_matrices(self, matrix_type, parcels='schaefer'):
+	def load_matrices(self, matrix_type, wildcard='ses-1', parcels='schaefer',sub_cortex=False):
 		"""
-		get a matrix from this dataset
+		load matrix from this dataset
 	    ----------
 	    parameters
 	    ----------
-	    matrix_type: what type of matrix do you want? can be a task, resting-state, diffusion
-		parcels: schaefer or gordon
+	    matrix_type: str, what type of matrix do you want? bold, diffusion (name the type)
+		wildcard: str,
+		parcels: str, schaefer, gordon, yeo,
+		sub_cortex: bool, do you want this (https://github.com/yetianmed/subcortex) added on?
 	    ----------
 		returns
 	    ----------
-	    out : mean numpy matrix, fisher-z transformed before meaning, np.nan down the diagonal
+	    out : numpy matrix, fisher-z transformed before meaning(if done), np.nan down the diagonal
 	    ----------
 		pnc examples
 	    ----------
@@ -94,6 +118,9 @@ class dataset:
 		self.parcels = parcels
 		if self.parcels == 'schaefer': n_parcels = 400
 		if self.parcels == 'gordon': n_parcels = 333
+
+		if self.sub_cortex == True:
+			n_parcels = n_parcels +50
 
 
 		if self.source != 'hcp':
@@ -110,6 +137,7 @@ class dataset:
 						matrix_path = '/{0}//neuroimaging/rest/restNetwork_schaefer400/restNetwork_schaefer400/Schaefer400Networks/{1}_Schaefer400_network.npy'.format(self.data_path,subject)
 			if self.source == 'hcp':
 				matrix_path = '/{0}/matrices/{1}_{2}.npy'.format(self.data_path,subject,self.matrix_type)
+
 			try:
 				m = np.load(matrix_path)
 				self.matrix.append(m)

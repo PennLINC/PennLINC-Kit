@@ -79,14 +79,14 @@ def fs5_to_hcp(lh,rh,out,img_type='label',wb_path='/cbica/home/bertolem/workbenc
 		{3}/fs_LR.R.midthickness_va_avg.32k_fs_LR.shape.gii'.format(wb_path,img_type,rh,path_2_maps,rh_name)
 	os.system(rh_cmd)	
 
-def hcp_to_fs5(in,out,img_type='label',wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):
+def hcp_to_fs5(input,out,img_type='label',wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):
 	resource_package = 'pennlinckit'
 	resource_path = 'standard_mesh_atlases/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii'
 	path_2_maps = pkg_resources.resource_filename(resource_package, resource_path).split('/')
 	path_2_maps = '/'.join(path_2_maps.split('/')[:-1]) + '/resample_fsaverage/'
-	cmd = '{0} -cifti-separate {1} COLUMN -{2} CORTEX_LEFT {3}-LR.{2}.gii'.format(wb_path,in,img_type,out)
+	cmd = '{0} -cifti-separate {1} COLUMN -{2} CORTEX_LEFT {3}-LR.{2}.gii'.format(wb_path,input,img_type,out)
 	os.system(cmd)
-	cmd = '{0} -cifti-separate {1} COLUMN -{2} CORTEX_RIGHT {3}-RH.{2}.gii'.format(wb_path,in,img_type,out)
+	cmd = '{0} -cifti-separate {1} COLUMN -{2} CORTEX_RIGHT {3}-RH.{2}.gii'.format(wb_path,input,img_type,out)
 	os.system(cmd)
 
 	rh_cmd = '{0} -{1}-resample {2}-LH.{1}.gii {3}/fs_LR-deformed_to-fsaverage.L.sphere.32k_fs_LR.surf.gii \

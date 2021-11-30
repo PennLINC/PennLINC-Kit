@@ -68,23 +68,23 @@ class dataset:
 
 	def load_matrices(self, task='**', session = '**',parcels='Schaefer417',sub_cortex=False,fd_scrub=False):
 		"""
-		load matrix from this dataset
-	    ----------
-	    parameters
-	    ----------
+		load matrices from this dataset
+		----------
+		parameters
+		----------
 		task: str, the name of the task or ** to grab all tasks
 		session: str, the name of the session, or ** to grab all sessions
 		parcels: str, Schaefer417, Gordon, Glasser,
 		sub_cortex: bool, if you want this (https://github.com/yetianmed/subcortex) sub_cortical data added on
 		fd_scrub: bool or float, False for no scrubbing, or float to remove frames with FD above fd_scrub
-	    ----------
+		----------
 		returns
-	    ----------
-	    out : numpy matrix, np.nan down the diagonal
-		this will also add the "n_frames" column to subject_measures, listing the number of frames remaining
-	    ----------
+		----------
+		out : numpy matrix, np.nan down the diagonal
+		note! this will also add the "n_frames" column to subject_measures, listing the number of frames remaining post scrubbing
+		----------
 		example (from PNC)
-	    ----------
+		----------
 		dataset.get_matrix('nback', session = '**',parcels='Schaefer417',sub_cortex=True,fd_scrub=0.2)
 		"""
 

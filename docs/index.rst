@@ -10,6 +10,10 @@
    :maxdepth: 2
    :caption: Contents:
 
+   diverse_development_example
+   brain
+   data
+
 
 
 Indices and tables

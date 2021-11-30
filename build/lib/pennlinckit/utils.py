@@ -118,27 +118,24 @@ def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_lin
 	if cv == 'KFold':
 		model_cv = KFold(folds)
 	self.prediction = np.zeros((self.subject_measures.subject.values.shape[0]))
-	self.corrected_targets = self.targets.copy()
-	self.corrected_targets = np.nan
 	for train, test in model_cv.split(self.subject_measures.subject.values):
 		x_train,y_train,x_test,y_test = self.features[train].copy(),self.targets[train].copy(),self.features[test].copy(),self.targets[test].copy()
 		if type(remove_linear_vars) != bool:
 			nuisance_model = LinearRegression()
-			nuisance_model.fit(self.subject_measures[remove_linear_vars].values[train],y_train) #fit the nuisance_model to training data
-			y_train = y_train - nuisance_model.predict(self.subject_measures[remove_linear_vars].values[train]) #remove nuisance from training data
-			y_test = y_test - nuisance_model.predict(self.subject_measures[remove_linear_vars].values[test]) #remove nuisance from test data
+			nuisance_model.fit(self.subject_measures[remove_linear_vars].values[train],x_train) #fit the nuisance_model to training data
+			x_train = x_train - nuisance_model.predict(self.subject_measures[remove_linear_vars].values[train]) #remove nuisance from training data
+			x_test = x_test - nuisance_model.predict(self.subject_measures[remove_linear_vars].values[test]) #remove nuisance from test data
 		if type(remove_cat_vars) != bool:
 			nuisance_model = LogisticRegression()
-			nuisance_model.fit(self.subject_measures[remove_linear_vars].values[train],y_train)
-			y_train = y_train - nuisance_model.predict(self.subject_measures[remove_cat_vars].values[train])
-			y_test = y_test - nuisance_model.predict(self.subject_measures[remove_cat_vars].values[test])
+			nuisance_model.fit(self.subject_measures[remove_linear_vars].values[train],x_train)
+			x_train = x_train - nuisance_model.predict(self.subject_measures[remove_cat_vars].values[train])
+			x_test = x_test - nuisance_model.predict(self.subject_measures[remove_cat_vars].values[test])
 		if model == 'ridge':
 			m = RidgeCV()
 		if model == 'deep':
 			m = MLPRegressor(hidden_layer_sizes=make_dnn_structure(neurons,layers))
 		m.fit(x_train,y_train)
 		self.prediction[test] = m.predict(x_test)
-		self.corrected_targets[test] = y_test
 
 def remove(remove_me,y,data_type='linear'):
 	if data_type == 'linear': model = LinearRegression()

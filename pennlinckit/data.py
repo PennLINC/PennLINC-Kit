@@ -13,28 +13,6 @@ import h5py
 import scipy.io
 from os.path import expanduser
 
-
-
-
-
-
-"""
-#for testing
-
-class self:
-	def __init__(self):
-		pass
-
-source = 'pnc'
-matrix_type = 'fc'
-task = '**'
-parcels = 'Schaefer417'
-sub_cortex = False
-session = '**'
-cores = 1
-fisher_z = True
-"""
-
 class dataset:
 	"""
 	This is the main object to use to load an rbc dataset
@@ -58,10 +36,10 @@ class dataset:
 			if self.source=='pnc': self.subject_measures = self.subject_measures.rename(columns={'reid':'subject'})
 		self.cores = cores
 
-	def update_subjects(self,subjects):
-		selfsubject_measures = self.subject_measures[self.subject_measures.subject.isin(subjects)]
-
 	def get_methods(self,modality='functional'):
+		"""
+		this won't work yet, but will load the methods text for papers
+		"""
 		resource_package = 'pennlinckit'
 		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
 		return np.loadtxt(resource_path)
@@ -175,10 +153,18 @@ class dataset:
 
 	def filter(self,way,value=None,column=None):
 		"""
-		way: operators like ==; "matrix" for subjects with a matrix;
-			"has_subject_measure" for subjects with that value
+		way: 
+			operators like ==;
+			OR
+			"matrix" for subjects with a matrix;
+			OR
+			"has_subject_measure" for subjects with that column in subject_measures
 		value: what the operator way is applied
 		colums: the column the operator is applied to
+
+		returns
+		---------
+		this edits the data.matrix and data.subject_measures according to the filter inputs, inplace 
 		"""
 		if way == '==':
 			self.matrix = self.matrix[self.subject_measures[column]==value]
@@ -195,6 +181,12 @@ class dataset:
 		if way == '<':
 			self.matrix = self.matrix[self.subject_measures[column]<value]
 			self.subject_measures = self.subject_measures[self.subject_measures[column]<value]
+		if way == '>=':
+			self.matrix = self.matrix[self.subject_measures[column]>=value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]>value]
+		if way == '<=':
+			self.matrix = self.matrix[self.subject_measures[column]<=value]
+			self.subject_measures = self.subject_measures[self.subject_measures[column]<value]
 		if way == 'matrix':
 			mask = np.isnan(self.matrix).sum(axis=1).sum(axis=1) == self.matrix.shape[-1]
 			self.subject_measures = self.subject_measures[mask]
@@ -203,3 +195,21 @@ class dataset:
 			mask = np.isnan(self.subject_measures[value]) == False
 			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
+
+
+"""
+#for testing
+
+class self:
+	def __init__(self):
+		pass
+
+source = 'pnc'
+matrix_type = 'fc'
+task = '**'
+parcels = 'Schaefer417'
+sub_cortex = False
+session = '**'
+cores = 1
+fisher_z = True
+"""

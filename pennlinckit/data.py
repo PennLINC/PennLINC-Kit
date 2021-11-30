@@ -16,10 +16,19 @@ from os.path import expanduser
 class dataset:
 	"""
 	This is the main object to use to load an rbc dataset
+
+	--------------
+	parameters
+	--------------
+	task: str, the name of the task or ** to grab all tasks
+	session: str, the name of the session, or ** to grab all sessions
+	parcels: str, Schaefer417, Gordon, Glasser,
+	sub_cortex: bool, if you want this (https://github.com/yetianmed/subcortex) sub_cortical data added on
+	fd_scrub: bool or float, False for no scrubbing, or float to remove frames with FD above fd_scrub
 	source: str, the name of the dataset
 	cores: int, the number of cores you will use for analysis
 	"""
-	def __init__(self, source='hcpya',cores=1):
+	def __init__(self, source,task='**', session = '**',parcels='Schaefer417',sub_cortex=False,fd_scrub=False,cores=1):
 		self.source = source
 		if self.source == 'hcpya': 
 			self.source_path = '/cbica/projects/hcpya/'
@@ -35,6 +44,13 @@ class dataset:
 			self.subject_measures = pd.read_csv('/cbica/projects/RBC/RBC_DERIVATIVES/{0}/{1}_demographics.csv'.format(self.source.upper(),self.source))
 			if self.source=='pnc': self.subject_measures = self.subject_measures.rename(columns={'reid':'subject'})
 		self.cores = cores
+		self.sub_cortex = sub_cortex
+		self.parcels = parcels
+		self.task = task
+		self.session = session
+		self.subject_measures['n_frames'] = np.nan
+		self.matrix = []
+		self.time_series = []
 
 	def get_methods(self,modality='functional'):
 		"""
@@ -44,43 +60,100 @@ class dataset:
 		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
 		return np.loadtxt(resource_path)
 
-	def load_matrices(self, task='**', session = '**',parcels='Schaefer417',sub_cortex=False,fd_scrub=False):
+	def load_ptseries(self):
 		"""
-		load matrices from this dataset
+		load parcellated time series from this dataset
 		----------
-		parameters
+		returns
 		----------
-		task: str, the name of the task or ** to grab all tasks
-		session: str, the name of the session, or ** to grab all sessions
-		parcels: str, Schaefer417, Gordon, Glasser,
-		sub_cortex: bool, if you want this (https://github.com/yetianmed/subcortex) sub_cortical data added on
-		fd_scrub: bool or float, False for no scrubbing, or float to remove frames with FD above fd_scrub
+		out : a list of numpy matrices of the parcellated time series
+		(why a list of numpy matrices? if you scrub, the matrices are different shapes, numpy does not like this)
+		note! this will also add the "n_frames" column to subject_measures, listing the number of frames remaining post scrubbing
+		----------
+		"""
+		missing = []
+		for subject in self.subject_measures.subject.values:
+			if self.source == 'hcpya': 
+				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.ptseries.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+				glob_scrub = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_**-framewisedisplacement_**.tsv'.format(self.source_path,subject,self.session,self.task))
+			elif self.source == 'hcpd-dcan':
+				glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.ptseries.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/data/motion/fd/sub-{1}/ses-V1/files/DCANBOLDProc_v4.0.0/analyses_v2/motion/task-{2}_power_2014_FD_only.mat'.format(self.source_path,subject,self.task))
+				glob_scrub = glob.glob('/{0}/data/motion/fd/sub-{1}/ses-V1/files/DCANBOLDProc_v4.0.0/analyses_v2/motion/task-{2}_power_2014_FD_only.mat'.format(self.source_path,subject,self.task))
+			else: #RBC datasets
+				glob_matrices = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_atlas-{4}_den-91k_den-91k_bold.ptseries.nii'.format(self.source_path,subject,self.session,self.task,self.parcels))
+				glob_qc = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.session,self.task))	
+				glob_scrub = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_**-framewisedisplacement_**.tsv'.format(self.source_path,subject,self.session,self.task))
+			if len(glob_matrices)==0:
+				print (subject)
+				missing.append(subject)
+				continue
+			glob_scrub.sort()
+			glob_qc.sort()
+			glob_matrices.sort()
+			
+			if self.source == 'hcpd-dcan':
+				FD = []
+				for qc in glob_qc:
+					FD.append(scipy.io.loadmat(qc,squeeze_me=True,struct_as_record=False)['motion_data'][20].remaining_frame_mean_FD)
+				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='meanFD'] = np.mean(FD)		
+
+				time_series = []
+				idx = 0
+				for ts,scrub_mask in zip(glob_matrices,glob_scrub):
+					scrub_mask = scipy.io.loadmat(scrub_mask,squeeze_me=True,struct_as_record=False)['motion_data'][20].frame_removal
+					ts = nib.load(ts).get_fdata()
+					ts = ts[scrub_mask==0]
+					if idx == 0: time_series = ts.copy()
+					else: time_series = np.append(time_series,ts.copy(),axis=0)
+					idx =+ 1
+				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='n_frames'] = time_series.shape[0]
+				self.time_series.append(time_series)
+				
+			else:
+				post_scrub_fd = []
+				for ts_file,scrub_mask in zip(glob_matrices,glob_scrub):
+					scrub_mask = pd.read_csv(scrub_mask,header=None).values.reshape(1,-1).flatten()
+					ts = nib.load(ts_file).get_fdata()
+					if type(fd_scrub) == float: 
+						ts = ts[scrub_mask<=fd_scrub]
+						post_scrub_fd.append(scrub_mask[scrub_mask<=fd_scrub])
+					if 'time_series' in locals(): time_series = np.append(time_series,ts.copy(),axis=0)
+					else: time_series = ts.copy()
+					if sub_cortex:
+						sub_ts = ts_file.replace(parcels,'subcortical')
+						sub_ts = nib.load(sub_ts).get_fdata()
+						if type(fd_scrub) == float: sub_ts = sub_ts[scrub_mask<=fd_scrub]
+						time_series = np.append(time_series,sub_ts.copy(),axis=1)
+				
+				columns = pd.read_csv(glob_qc[0]).columns
+				sub_df = pd.DataFrame(columns=columns)
+				for qc in glob_qc:
+					sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
+				sub_df = sub_df.groupby('sub').mean()
+				sub_df['subject'] = sub_df.index
+				sub_df['post_scrub_fd'] = np.mean([item for sublist in post_scrub_fd for item in sublist])  
+				if 'qc_df' in locals(): qc_df = qc_df.append(sub_df,ignore_index=True)
+				else: qc_df = sub_df.copy()
+				
+				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='n_frames'] = time_series.shape[0]
+				self.time_series.append(time_series)
+
+	def load_matrices(self):
+		"""
+		load functional connectivity matrices from this dataset
 		----------
 		returns
 		----------
 		out : numpy matrix, np.nan down the diagonal
 		note! this will also add the "n_frames" column to subject_measures, listing the number of frames remaining post scrubbing
 		----------
-		example (from PNC)
-		----------
-		dataset.get_matrix('nback', session = '**',parcels='Schaefer417',sub_cortex=True,fd_scrub=0.2)
-		"""
-
-		self.sub_cortex = sub_cortex
-		self.parcels = parcels
-		self.task = task
-		self.session = session
-		if self.parcels == 'Schaefer417': n_parcels = 400
-		if self.parcels == 'Schaefer217': n_parcels = 200
-		if self.parcels == 'Gordon': n_parcels = 333
-		if self.sub_cortex == True: n_parcels = n_parcels +50
-		self.subject_measures['n_frames'] = np.nan
-
-		self.matrix = []
+		"""		
 		missing = []
 		for subject in self.subject_measures.subject.values:
 			if self.source == 'hcpya': 
-				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.pconn.nii'.format(self.source_path,subject,self.task,self.parcels))
+				glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.ptseries.nii'.format(self.source_path,subject,self.task,self.parcels))
 				glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
 				glob_scrub = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_**-framewisedisplacement_res-2_bold.tsv'.format(self.source_path,subject,self.session,self.task))
 			elif self.source == 'hcpd-dcan':
@@ -119,26 +192,32 @@ class dataset:
 				self.matrix.append(subject_matrix)
 				
 			else:
+				post_scrub_fd = []
+				for ts_file,scrub_mask in zip(glob_matrices,glob_scrub):
+					scrub_mask = pd.read_csv(scrub_mask,header=None).values.reshape(1,-1).flatten()
+					ts = nib.load(ts_file).get_fdata()
+					if type(fd_scrub) == float:
+						ts = ts[scrub_mask<=fd_scrub]
+						post_scrub_fd.append(scrub_mask[scrub_mask<=fd_scrub])
+					if 'time_series' in locals(): time_series = np.append(time_series,ts.copy(),axis=0)
+					else: time_series = ts.copy()
+					if sub_cortex:
+						sub_ts = ts_file.replace(parcels,'subcortical')
+						sub_ts = nib.load(sub_ts).get_fdata()
+						if type(fd_scrub) == float: 
+							sub_ts = sub_ts[scrub_mask<=fd_scrub]
+						time_series = np.append(time_series,sub_ts.copy(),axis=1)
+
 				columns = pd.read_csv(glob_qc[0]).columns
 				sub_df = pd.DataFrame(columns=columns)
 				for qc in glob_qc:
 					sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
 				sub_df = sub_df.groupby('sub').mean()
 				sub_df['subject'] = sub_df.index
+				sub_df['post_scrub_fd'] = np.mean([item for sublist in post_scrub_fd for item in sublist])  
 				if 'qc_df' in locals(): qc_df = qc_df.append(sub_df,ignore_index=True)
 				else: qc_df = sub_df.copy()
 
-				for ts_file,scrub_mask in zip(glob_matrices,glob_scrub):
-					scrub_mask = pd.read_csv(scrub_mask,header=None).values.reshape(1,-1).flatten()
-					ts = nib.load(ts_file).get_fdata()
-					if type(fd_scrub) == float: fd_scrubts = ts[scrub_mask<=fd_scrub]
-					if 'time_series' in locals(): time_series = np.append(time_series,ts.copy(),axis=0)
-					else: time_series = ts.copy()
-					if sub_cortex:
-						sub_ts = ts_file.replace(parcels,'subcortical')
-						sub_ts = nib.load(sub_ts).get_fdata()
-						if type(fd_scrub) == float: sub_ts = sub_ts[scrub_mask<=fd_scrub]
-						time_series = np.append(time_series,sub_ts.copy(),axis=1)
 				self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='n_frames'] = time_series.shape[0]
 				subject_matrix = np.corrcoef(time_series.swapaxes(0,1))
 				self.matrix.append(subject_matrix)
@@ -150,7 +229,80 @@ class dataset:
 		self.matrix = np.array(self.matrix)
 		assert self.matrix.shape[0] == self.subject_measures.shape[0]
 
+	def load_cifti(self,subject):
+		"""
+		load cifti from a single subject
+		----------
+		returns
+		----------
+		out : nibabel object of the loaded cifti file
+		note! this will also add the "n_frames" column to subject_measures, listing the number of frames remaining post scrubbing
+		----------
+		example (from PNC)
+		----------
+		# first subject in dataset
+		qc,cifti = load_cifti(dataset.subject_measures.subject[0])
+		"""
 
+		if self.source == 'hcpya': 
+			glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_space-fsLR_den-91k_desc-residual_den-91k_bold.dtseries.nii'.format(self.source_path,subject,self.task))
+			glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
+			glob_scrub = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_**-framewisedisplacement_res-2_bold.tsv'.format(self.source_path,subject,self.session,self.task))
+		elif self.source == 'hcpd-dcan':
+			glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_Atlas.dtseries.nii'.format(self.source_path,subject,self.task))
+			glob_qc = glob.glob('/{0}/data/motion/fd/sub-{1}/ses-V1/files/DCANBOLDProc_v4.0.0/analyses_v2/motion/task-{2}_power_2014_FD_only.mat'.format(self.source_path,subject,self.task))
+			glob_scrub = glob.glob('/{0}/data/motion/fd/sub-{1}/ses-V1/files/DCANBOLDProc_v4.0.0/analyses_v2/motion/task-{2}_power_2014_FD_only.mat'.format(self.source_path,subject,self.task))
+		else: #RBC datasets
+			glob_matrices = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_ses-{2}_task-{3}_space-fsLR_den-91k_desc-residual_den-91k_bold.dtseries.nii'.format(self.source_path,subject,self.session,self.task))
+			glob_qc = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_ses-{2}_task-{3}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.session,self.task))	
+			glob_scrub = glob.glob('/{0}/XCP/sub-{1}/{2}/func/sub-{1}_ses-{2}_task-{3}_**-framewisedisplacement_res-2_bold.tsv'.format(self.source_path,subject,self.session,self.task))
+		if len(glob_matrices)==0:
+			print (subject)
+			missing.append(subject)
+			continue
+		glob_scrub.sort()
+		glob_qc.sort()
+		glob_matrices.sort()
+		
+		if self.source == 'hcpd-dcan':
+			FD = []
+			for qc in glob_qc:
+				FD.append(scipy.io.loadmat(qc,squeeze_me=True,struct_as_record=False)['motion_data'][20].remaining_frame_mean_FD)
+			self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='meanFD'] = np.mean(FD)		
+
+			time_series = []
+			idx = 0
+			for ts,scrub_mask in zip(glob_matrices,glob_scrub):
+				scrub_mask = scipy.io.loadmat(scrub_mask,squeeze_me=True,struct_as_record=False)['motion_data'][20].frame_removal
+				ts = nib.load(ts).get_fdata()
+				ts = ts[scrub_mask==0]
+				if idx == 0: time_series = ts.copy()
+				else: time_series = np.append(time_series,ts.copy(),axis=0)
+				idx =+ 1
+			return np.mean(FD),time_series
+			
+		else:
+			post_scrub_fd = []
+			for ts_file,scrub_mask in zip(glob_matrices,glob_scrub):
+				scrub_mask = pd.read_csv(scrub_mask,header=None).values.reshape(1,-1).flatten()
+				ts = nib.load(ts_file).get_fdata()
+				if type(self.fd_scrub) == float:
+					ts = ts[scrub_mask<=self.fd_scrub]
+					post_scrub_fd.append(scrub_mask[scrub_mask<=self.fd_scrub])
+				if 'time_series' in locals(): time_series = np.append(time_series,ts.copy(),axis=0)
+				else: time_series = ts.copy()
+			
+			columns = pd.read_csv(glob_qc[0]).columns
+			sub_df = pd.DataFrame(columns=columns)
+			for qc in glob_qc:
+				sub_df = sub_df.append(pd.read_csv(qc),ignore_index=True)
+			sub_df = sub_df.groupby('sub').mean()
+			sub_df['subject'] = sub_df.index
+			sub_df['post_scrub_fd'] = np.mean([item for sublist in post_scrub_fd for item in sublist])  
+			self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='n_frames'] = time_series.shape[0]
+			return sub_df,time_series	
+
+	
 	def filter(self,way,value=None,column=None):
 		"""
 		way: 
@@ -204,12 +356,11 @@ class self:
 	def __init__(self):
 		pass
 
-source = 'pnc'
-matrix_type = 'fc'
+source = 'hcpd-dcan'
 task = '**'
 parcels = 'Schaefer417'
 sub_cortex = False
 session = '**'
 cores = 1
-fisher_z = True
+scrub_fd = .2
 """

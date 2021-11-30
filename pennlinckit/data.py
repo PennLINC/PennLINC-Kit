@@ -63,7 +63,6 @@ class dataset:
 		resource_path = '{0}_boiler_{1}.txt'.format(self.source,modality)
 		return np.loadtxt(resource_path)
 
-
 	def load_matrices(self, task='**', session = '**',parcels='Schaefer417',sub_cortex=False,fd_scrub=False):
 		"""
 		load matrix from this dataset
@@ -201,53 +200,3 @@ class dataset:
 			mask = np.isnan(self.subject_measures[value]) == False
 			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
-
-
-class allen_brain_institute:
-	def __init__(self):
-		"""
-		Allen Gene Expression data in the Scheafer 400 parcels.
-	    ----------
-		Returns
-	    ----------
-	    out : left hemisphere expression, right hemisphere expression, names of the genes
-		"""
-		self.data_home = os.path.expanduser('~/allen/')
-		self.data_home = os.path.join(self.data_home)
-		if os.path.exists(self.data_home) == False:
-			print ("Gemme a sec, I am downloading allen gene expression to: %s" %(self.data_home))
-			os.makedirs(self.data_home)
-			urlretrieve('https://www.dropbox.com/s/1zahnd0k0jpk0xf/allen_expression_genes.npy?dl=1',self.data_home + 'allen_expression_genes.npy')
-			urlretrieve('https://www.dropbox.com/s/879cuel80nntipq/allen_expression_lh.npy?dl=1',self.data_home + 'allen_expression_lh.npy')
-			urlretrieve('https://www.dropbox.com/s/cnb6aacerdhhd4p/allen_expression_rh.npy?dl=1',self.data_home + 'allen_expression_rh.npy')
-			names = np.load(self.data_home + 'allen_expression_genes.npy',allow_pickle=True)
-			final_names = []
-			for n in names:final_names.append(n[0][0])
-			np.save(self.data_home + 'allen_expression_genes.npy',final_names)
-			print ("Okay, done, I won't have to do this again!")
-		self.names = np.load(self.data_home + 'allen_expression_genes.npy')
-		self.expression= np.zeros((400,len(self.names)))
-		self.expression[:200] = np.load(self.data_home + 'allen_expression_lh.npy')[:200]
-		self.expression[200:] = np.load(self.data_home + 'allen_expression_rh.npy')[200:]
-
-class evo_expansion:
-	def __init__(self):
-		resource_package = 'pennlinckit'
-		resource_path = 'schaefer400x17_rescaled_regional_evoExpansion_LHfixed.npy'
-		path = pkg_resources.resource_stream(resource_package, resource_path)
-		self.data = np.load(path.name)
-
-class gradient:
-	def __init__(self):
-		resource_package = 'pennlinckit'
-		resource_path = 'schaefer400x17_mean_regional_margulies_gradient.txt'
-		path = pkg_resources.resource_stream(resource_package, resource_path)
-		self.data = np.loadtxt(path.name)
-
-
-# self = dataset('pnc')
-# matrix_type = 'rest'
-# parcels = 'schaefer'
-# self.load_matrices('rest')
-# self.filter('cognitive')
-# self.filter('==',value=0,column='restRelMeanRMSMotionExclude')

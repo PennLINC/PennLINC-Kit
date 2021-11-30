@@ -15,13 +15,16 @@ from os.path import expanduser
 
 
 
-class self:
-	def __init__(self):
-		pass
+
 
 
 """
 #for testing
+
+class self:
+	def __init__(self):
+		pass
+
 source = 'pnc'
 matrix_type = 'fc'
 task = '**'

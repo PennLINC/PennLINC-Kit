@@ -21,16 +21,18 @@ def load(self,loadtype,subjects):
 	if loadtype=='ptseries' or loadtype == 'matrix': 
 		name = 'ptseries'
 	else:
-		self.parcels = 'Atlas'
+		name = 'dtseries'
 
 	missing = []
 	for subject in subjects:
-		if self.source == 'hcpya': 
-			glob_matrices = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}**atlas-{3}_den-91k_den-91k_bold.ptseries.nii'.format(self.source_path,subject,self.task,self.parcels))
-			glob_qc = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{2}_acq-**_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task))
-			glob_scrub = glob.glob('/{0}/DERIVATIVES/XCP/sub-{1}/{2}/func/sub-{1}_{2}_task-{3}_**-framewisedisplacement_**.tsv'.format(self.source_path,subject,self.session,self.task))
+		if self.source == 'hcpya':
+			if loadtype == 'cifti': glob_matrices = glob.glob('{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{3}_acq-{4}_space-fsLR_den-91k_desc-residual_den-91k_bold.dtseries.nii'.format(self.source_path,subject,self.task,self.session,self.acq))
+			else: glob_matrices = glob.glob('{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{3}_acq-{4}_space-fsLR_atlas-{5}_den-91k_den-91k_bold.{6}.nii'.format(self.source_path,subject,self.task,self.session,self.acq,self.parcels,name))
+			glob_qc = glob.glob('{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{3}_acq-{4}_space-fsLR_desc-qc_den-91k_bold.csv'.format(self.source_path,subject,self.task,self.session,self.acq))
+			glob_scrub = glob.glob('{0}/DERIVATIVES/XCP/sub-{1}/func/sub-{1}_task-{3}_acq-{4}_space-fsLR_desc-framewisedisplacement_den-91k_bold.tsv'.format(self.source_path,subject,self.task,self.session,self.acq))
 		elif self.source == 'hcpd-dcan':
-			glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.ptseries.nii'.format(self.source_path,subject,self.task,self.parcels))
+			if loadtype == 'cifti': glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_Atlas.{3}.nii'.format(self.source_path,subject,self.task,name)) 
+			else:glob_matrices = glob.glob('/{0}/data/sub-{1}/ses-V1/files/MNINonLinear/Results/task-{2}_DCANBOLDProc_v4.0.0_{3}.{4}.nii'.format(self.source_path,subject,self.task,self.parcels,name))
 			glob_qc = glob.glob('/{0}/data/motion/fd/sub-{1}/ses-V1/files/DCANBOLDProc_v4.0.0/analyses_v2/motion/task-{2}_power_2014_FD_only.mat'.format(self.source_path,subject,self.task))
 			glob_scrub = glob.glob('/{0}/data/motion/fd/sub-{1}/ses-V1/files/DCANBOLDProc_v4.0.0/analyses_v2/motion/task-{2}_power_2014_FD_only.mat'.format(self.source_path,subject,self.task))
 		else: #RBC datasets
@@ -57,10 +59,9 @@ def load(self,loadtype,subjects):
 				scrub_mask = scipy.io.loadmat(scrub_mask,squeeze_me=True,struct_as_record=False)['motion_data'][20].frame_removal
 				ts = nib.load(ts).get_fdata()
 				ts = ts[scrub_mask==0]
-				if 'time_series' in locals(): time_series = ts.copy()
-				else: time_series = np.append(time_series,ts.copy(),axis=0)
+				if 'time_series' in locals(): time_series = np.append(time_series,ts.copy(),axis=0)
+				else: time_series = ts.copy()
 			if loadtype =='cifti': return np.mean(FD),time_series	
-
 			
 		else:
 			post_scrub_fd = []
@@ -88,7 +89,6 @@ def load(self,loadtype,subjects):
 			sub_df['post_scrub_fd'] = np.mean([item for sublist in post_scrub_fd for item in sublist])  
 			if 'qc_df' in locals(): qc_df = qc_df.append(sub_df,ignore_index=True)
 			else: qc_df = sub_df.copy()
-
 			if loadtype =='cifti': return sub_df,time_series	
 
 		self.subject_measures.loc[self.subject_measures.subject==subject,self.subject_measures.columns=='n_frames'] = time_series.shape[0]
@@ -97,7 +97,7 @@ def load(self,loadtype,subjects):
 			subject_matrix = np.corrcoef(time_series.swapaxes(0,1))
 			self.matrix.append(subject_matrix)
 		if loadtype =='ptseries':
-			self.ptseries.append(subject_matrix)
+			self.ptseries.append(time_series)
 
 	if self.source != 'hcpd-dcan':self.subject_measures=self.subject_measures.merge(qc_df,on='subject')
 	
@@ -107,11 +107,12 @@ def load(self,loadtype,subjects):
 
 	if loadtype == 'matrix':
 		self.matrix = np.array(self.matrix)
-		assert self.matrix.shape[0] == self.subject_measures.shape[0]
+		assert len(self.matrix) == self.subject_measures.shape[0]
+		if len(self.ptseries) != 0: assert len(self.ptseries) == len(self.matrix)
 
 	elif loadtype == 'ptseries':
-		self.ptseries = np.array(self.matrix)
-		assert self.ptseries.shape[0] == self.subject_measures.shape[0]
+		assert len(self.ptseries) == self.subject_measures.shape[0]
+		if len(self.matrix)!= 0: assert len(self.ptseries) == len(self.matrix)
 
 class dataset:
 	"""
@@ -153,7 +154,7 @@ class dataset:
 		self.fd_scrub = fd_scrub
 		self.subject_measures['n_frames'] = np.nan
 		self.matrix = []
-		self.time_series = []
+		self.ptseries = []
 
 	def get_methods(self,modality='functional'):
 		"""
@@ -251,6 +252,16 @@ class dataset:
 			self.subject_measures = self.subject_measures[mask]
 			self.matrix = self.matrix[mask]
 
+
+def test():
+	hcpd = dataset(source='hcpd-dcan',fd_scrub=0.1)  
+	hcpya = dataset(source='hcpya',fd_scrub=0.1)  
+	pnc = dataset(source='pnc',fd_scrub=0.1)  
+	for data in [hcpd,hcpya,pnc]:
+		data.subject_measures = data.subject_measures[:10]
+		qc,c = data.load_cifti(data.subject_measures.subject[2])  
+		data.load_matrices()
+		data.load_ptseries()   
 
 """
 #for testing

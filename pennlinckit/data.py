@@ -98,6 +98,7 @@ def load(self,loadtype,subjects):
 			self.matrix.append(subject_matrix)
 		if loadtype =='ptseries':
 			self.ptseries.append(time_series)
+		del time_series
 
 	if self.source != 'hcpd-dcan':self.subject_measures=self.subject_measures.merge(qc_df,on='subject')
 	

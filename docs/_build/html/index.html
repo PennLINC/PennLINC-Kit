@@ -13,8 +13,10 @@
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="diverse development using pennlinckit" href="diverse_development_example.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -35,6 +37,23 @@
 <h1>PennLINC-Kit: Common analysis functions used by the PennLINC scientists<a class="headerlink" href="#pennlinc-kit-common-analysis-functions-used-by-the-pennlinc-scientists" title="Permalink to this headline">¶</a></h1>
 <a class="reference external image-reference" href="https://pennlinc-kit.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/pennlinc-kit/badge/?version=latest" /></a>
 <div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="diverse_development_example.html">diverse development using pennlinckit</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#pennlinckit-contains-data,-plotting,-brain,-network-science,-and-math-functions-common-to-neuroscience-projects">pennlinckit contains data, plotting, brain, network science, and math functions common to neuroscience projects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#standard-libraries">standard libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#You-will-probably-be-most-interested-in-the-matrices:">You will probably be most interested in the matrices:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#You-can-always-double-check-what-dataset-you-called-with:">You can always double check what dataset you called with:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#All-data-objects-will-have-a-“measures”-method,-which-is-a-pandas-dataframe-with-all-the-info-you-need">All data objects will have a “measures” method, which is a pandas dataframe with all the info you need</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#Sometimes-it’s-confusing-to-have-all-these-odd-names,-which-is-why-we-have-a-data_dict-method">Sometimes it’s confusing to have all these odd names, which is why we have a data_dict method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#Let’s-only-look-at-subjects-that-have-a-matrix-for-resting-state-and-cognitive-scores">Let’s only look at subjects that have a matrix for resting-state and cognitive scores</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#Let’s-only-look-at-people-who-did-not-move-a-lot">Let’s only look at people who did not move a lot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diverse_development_example.html#Now-let’s-look-at-the-outputs">Now let’s look at the outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="brain.html">Brain: Functions for Manipulating Brain Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data: Available Dataset Classes and Functions</a></li>
+</ul>
 </div>
 </section>
 <section id="indices-and-tables">
@@ -63,11 +82,18 @@
 
 
 <h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="diverse_development_example.html">diverse development using pennlinckit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="brain.html">Brain: Functions for Manipulating Brain Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data: Available Dataset Classes and Functions</a></li>
+</ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="diverse_development_example.html" title="next chapter">diverse development using pennlinckit</a></li>
   </ul></li>
 </ul>
 </div>

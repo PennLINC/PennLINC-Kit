@@ -3,3 +3,4 @@ nilearn>=0.7.0
 brainsmash>=0.11.0
 seaborn>=0.11.1
 nbsphinx==0.8.7
+sphinx-argparse

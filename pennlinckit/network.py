@@ -135,6 +135,19 @@ def metrics(self,m):
 
 class make_networks:
 	def __init__(self,dataset,costs=[0.15,0.1,0.05,0.025,0.01],yeo_partition=17,binary=False,sym=True,normalize=False,mst=True,cores=4):
+		"""
+		Generates network metrics for your dataset
+
+		Parameters:
+			costs: the range of network densities you want, default is: [0.15,0.1,0.05,0.025,0.01]
+			binary: False, convert weighted values to 1
+			normalize: False, make all edges sum to 1. Convienient for comparisons across subjects, as this ensures the same sum of weights and number of edges are equal across subjects
+			mst: False, calculate the maximum spanning tree, which is the strongest set of edges that keep the graph connected. This is convienient for ensuring no nodes become disconnected.		
+			cores: the number of cores to use
+
+		Returns:
+			adds graph, pc (participation coefficient), stength, and modularity values for each subject to the dataset object you pass this function
+		"""
 		self.costs = costs
 		self.yeo_partition = yeo_partition
 		self.binary = binary

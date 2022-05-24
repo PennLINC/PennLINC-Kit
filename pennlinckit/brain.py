@@ -16,11 +16,16 @@ from scipy.stats import pearsonr
 def vol2fslr(volume,out,roi=False,wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):
 	"""
 	wraps the connectome workbench method
-	volume: str, path to nifti, 2mm MNI152 image
-	out: str, what you want to call your surface
-	roi: False for continuous values, True for ROIs /
-	"parcels" if you don't want values "mixing".
-	wb_path: this is for CUBIC, edit if you are running locally
+	Parameters:
+		volume: str, path to nifti, 2mm MNI152 image
+		out: str, what you want to call your surface
+		roi: False for continuous values, True for ROIs /
+		"parcels" if you don't want values "mixing".
+		wb_path: this is for CUBIC, edit if you are running locally
+	
+	Returns:
+		writes out a surface version of your volume in fslr32k space. You can view
+		this with wb_view 
 	"""
 
 	resource_package = 'pennlinckit'
@@ -57,6 +62,19 @@ def vol2fslr(volume,out,roi=False,wb_path='/cbica/home/bertolem/workbench//bin_r
 
 
 def fs5_to_hcp(lh,rh,out,img_type='label',wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):	
+
+	"""
+	maps from fsaverage5 to fslr32k aka Human Connectome Specat
+
+	Parameters:
+
+		lr: left hemisphere fsaverage file
+		rh: right hemisphere fsaverage file
+		out: name for new file
+		img_type: label (for parcels) or metric (for analysis / results)
+
+	Returns: writes out a left and right gii file in fslr32k
+	"""
 	resource_package = 'pennlinckit'
 	resource_path = 'standard_mesh_atlases/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii'
 	path_2_maps = pkg_resources.resource_filename(resource_package, resource_path).split('/') 
@@ -80,6 +98,20 @@ def fs5_to_hcp(lh,rh,out,img_type='label',wb_path='/cbica/home/bertolem/workbenc
 	os.system(rh_cmd)	
 
 def hcp_to_fs5(input,out,img_type='label',wb_path='/cbica/home/bertolem/workbench//bin_rh_linux64/wb_command'):
+
+	"""
+	maps from fslr32k aka Human Connectome Space to fsaverage5
+
+	Parameters:
+
+		input: fslr32k cifti file
+		out: name for new file
+		img_type: label (for parcels) or metric (for analysis / results)
+
+	Returns: 
+		writes out a left and right gii file in fsaverage5
+	"""
+
 	resource_package = 'pennlinckit'
 	resource_path = 'standard_mesh_atlases/fsaverage5_std_sphere.L.10k_fsavg_L.surf.gii'
 	path_2_maps = pkg_resources.resource_filename(resource_package, resource_path).split('/')
@@ -103,14 +135,29 @@ def hcp_to_fs5(input,out,img_type='label',wb_path='/cbica/home/bertolem/workbenc
 
 def cerebellum_vol2surf(input,output):
 	"""
-	input: MNI space volume
-	output: string to save your surface to!
+	Uses a pretty great MATLAB library to map volume to surface in the cerebellum
+	
+	Parameters:
+		input: MNI space volume
+		output: string to save your surface to
+	
+	Returns:
+		gii file of your surface cerebellum, in fsaverage5 space,
+		you can view this in wb_view
 	"""
 	command = """matlab -nosplash -nodesktop -r "addpath /cbica/home/bertolem/spm12/toolbox/suit/;addpath\
 	 /cbica/home/bertolem/spm12/;C.cdata=suit_map2surf('{0}','space','FSL');C=gifti(C);save(C,'{1}.func.gii');exit" """.format(input,output)
 	os.system(command)
 
 def view_surf(surf,hemi='left'):
+	"""
+	plots an inline version of the cortical surface data in fslr32k space
+
+	Parameters:
+		surf: your data as an array
+		hemi: left or right
+
+	"""
 	resource_package = 'pennlinckit'
 	resource_path = 'Q1-Q6_R440.HEMI.SURFACE.32k_fs_LR.surf.gii'
 	file = pkg_resources.resource_filename(resource_package, resource_path)
@@ -119,11 +166,30 @@ def view_surf(surf,hemi='left'):
 	nilearn.plotting.view_surf(inflated,surf)
 
 def view_nifti(path):
+	"""
+	plots an inline version of the volume data 
+
+	Parameters:
+		path: path to the nifti volume
+	"""
 	nifti = nib.load(path)
 	nifti_data = nifti.get_fdata()
 	nib.viewers.OrthoSlicer3D(nifti_data,nifti.affine)
 
 def yeo_partition(n_networks=17,parcels='Schaefer400'):
+	"""
+	Loads the Schaefer network labels and names for 17 or 7 networks
+	We require you used the 17 network parcels, but we can reduce this to 7 networks if you request it
+
+	Parameters:
+		n_networks: 7 or 17
+
+	Returns:
+		membership: string based names for the 7 or 17 networks
+		membership_ints: int based names for the 7 or 17 networks
+		names: corresponding names for each network
+	"""
+
 	if parcels=='Schaefer400': resource_path = 'Schaefer2018_400Parcels_17Networks_order_info.txt'
 	resource_package = 'pennlinckit'
 	yeo_file = pkg_resources.resource_stream(resource_package, resource_path).name
@@ -149,6 +215,17 @@ def yeo_partition(n_networks=17,parcels='Schaefer400'):
 	return membership,membership_ints,names
 
 def spin_test(map1,map2,parcels='Schaefer400',n=1000):
+	"""
+	Uses a precomputed cortical distance file to run the brainsmash spin test for the 
+	Schaefer400 parcels
+
+	Parameters:
+		map1: one cortical map you care about
+		map2: another coritcal map you care about
+
+	Returns:
+		p_value of the spin test
+	"""
     if parcels == 'Schaefer400': split = 200 #where the right hemi starts
     resource_package = 'pennlinckit'
     resource_path = '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)
@@ -162,6 +239,9 @@ def spin_test(map1,map2,parcels='Schaefer400',n=1000):
     return brainsmash.mapgen.stats.pearsonr(map1,maps)[0]
 
 def spin_stat(map1,map2,spincorrs):
+	"""
+	helper function for brain.spin_test
+	"""
     real_r = pearsonr(map1,map2)[0]
     if real_r >= 0.0:
         smash_p = len(spincorrs[spincorrs>real_r])/float(len(spincorrs))
@@ -171,16 +251,14 @@ def spin_stat(map1,map2,spincorrs):
 
 def write_cifti(colors,out_path,parcels='Schaefer400',wb_path='/cbica/home/bertolem/workbench/bin_rh_linux64/wb_command'):
 	"""
-	You have data, you want it on the brain
+	You have data in the Schaefer 400 parcels, you want it on the cortical surface
 
-    Parameters
-    ----------
-    colors: RGB valus for each parcel
-    atlas_path: the cifti file you are basing this on
-    out_path: what you want to call it!
-    Returns
-    -------
-    out : out_path.dlabel file to open on connectome_wb
+    Parameters:
+		colors: RGB valus for each parcel
+		atlas_path: the cifti file you are basing this on
+		out_path: what you want to call it!
+    Returns:
+	    out_path.dlabel file to open on connectome_wb
 	"""
 	if parcels=='Schaefer400':
 		resource_path = 'Schaefer2018_400Parcels_17Networks_order.dlabel.nii'

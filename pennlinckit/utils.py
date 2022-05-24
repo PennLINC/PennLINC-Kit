@@ -114,9 +114,24 @@ def matrix_triu(n_nodes=400):
 def matrix_tril(n_nodes=400):
 	return np.tril_indices(n_nodes,-1)
 
-def predict(self,model='ridge',cv='KFold',folds=5,layers=5,neurons=50,remove_linear_vars=False,remove_cat_vars=False):
-	if cv == 'KFold':
-		model_cv = KFold(folds)
+def predict(self,model='ridge',folds=5,layers=5,neurons=50,remove_linear_vars=False,remove_cat_vars=False):
+	"""
+	Uses ridge regression or deep neural networks, with CV, and nuisance signal removal to map 
+	This will remove nuisance noise by fitting to the training dataset and applying that model to the test data, 
+	this prevents leakage
+
+	Parameters:
+		model: ridge or deep 
+		folds: the number of cross val folds
+		layers: number of layers for "deep" model
+		neurons: number of neurons for "deep" model
+		remove_linear_vars: column names in self.subject_measures to remove from data, for linear data
+		remove_cat_vars: column names in self.subject_measures to remove from data, for categorical data
+
+	Returns:
+		prediction, the out of sample predictions for each subject
+	"""
+	model_cv = KFold(folds)
 	self.prediction = np.zeros((self.subject_measures.subject.values.shape[0]))
 	for train, test in model_cv.split(self.subject_measures.subject.values):
 		x_train,y_train,x_test,y_test = self.features[train].copy(),self.targets[train].copy(),self.features[test].copy(),self.targets[test].copy()

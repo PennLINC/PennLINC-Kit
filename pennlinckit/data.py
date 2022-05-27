@@ -166,6 +166,12 @@ class dataset:
 	"""
 	def __init__(self, source,task='**', session = '**',acq='**',parcels='Schaefer417',sub_cortex=False,fd_scrub=False,cores=1):
 		self.source = source
+		"""
+		really all that is happening here is getting the demographics csv
+		i imagine you could also load the cubids and datalad information here,
+		this is meant to sort of be a lightweight instantiation, so it runs super quick
+		the load() functions take a while, but this gets you subject (and hopefully datalad info quickly)
+		"""
 		if self.source == 'hcpya': 
 			self.source_path = '/cbica/projects/hcpya/'
 			self.subject_measures = pd.read_csv('/cbica/projects/hcpya/unrestricted_mb3152_10_26_2021_13_40_49.csv').rename(columns={'Subject':'subject'})
@@ -186,7 +192,7 @@ class dataset:
 		self.session = session
 		self.acq = acq
 		self.fd_scrub = fd_scrub
-		self.subject_measures['n_frames'] = np.nan
+		self.subject_measures['n_frames'] = np.nan #we make this later, so np.nan for now
 		self.matrix = []
 		self.ptseries = []
 
@@ -255,6 +261,10 @@ class dataset:
 		returns
 		---------
 		this edits the data.matrix and data.subject_measures according to the filter inputs, inplace 
+		
+		This function is probably one of the most important ones. This is what people should use for subject inclusion 
+		and subject exclusion.
+		
 		"""
 		if way == '==':
 			self.matrix = self.matrix[self.subject_measures[column]==value]

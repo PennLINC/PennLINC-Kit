@@ -227,16 +227,16 @@ def spin_test(map1,map2,parcels='Schaefer400',n=1000):
 		p_value of the spin test
 	"""
     if parcels == 'Schaefer400': split = 200 #where the right hemi starts
-    resource_package = 'pennlinckit'
-    resource_path = '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)
-    mat_file = scipy.io.loadmat(pkg_resources.resource_stream(resource_package, resource_path))
-    lh_gen = brainsmash.mapgen.base.Base(map2[:split], D= mat_file['lh_dist'])
-    lh_maps = lh_gen(n=n)
-    rh_gen = brainsmash.mapgen.base.Base(map2[split:], D= mat_file['rh_dist'])
-    rh_maps = rh_gen(n=n)
-    maps = np.append(lh_maps,rh_maps,axis=1)
-    assert (lh_maps[0] == maps[0,:200]).all()
-    return brainsmash.mapgen.stats.pearsonr(map1,maps)[0]
+        resource_package = 'pennlinckit'
+        resource_path = '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)
+        mat_file = scipy.io.loadmat(pkg_resources.resource_stream(resource_package, resource_path))
+        lh_gen = brainsmash.mapgen.base.Base(map2[:split], D= mat_file['lh_dist'])
+        lh_maps = lh_gen(n=n)
+        rh_gen = brainsmash.mapgen.base.Base(map2[split:], D= mat_file['rh_dist'])
+        rh_maps = rh_gen(n=n)
+        maps = np.append(lh_maps,rh_maps,axis=1)
+        assert (lh_maps[0] == maps[0,:200]).all()
+        return brainsmash.mapgen.stats.pearsonr(map1,maps)[0]
 
 def spin_stat(map1,map2,spincorrs):
 	"""

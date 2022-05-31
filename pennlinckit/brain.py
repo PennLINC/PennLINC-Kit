@@ -226,7 +226,8 @@ def spin_test(map1,map2,parcels='Schaefer400',n=1000):
 	Returns:
 		p_value of the spin test
 	"""
-    if parcels == 'Schaefer400': split = 200 #where the right hemi starts
+    if parcels == 'Schaefer400': 
+        split = 200 #where the right hemi starts
         resource_package = 'pennlinckit'
         resource_path = '%s_ROIwise_geodesic_distance_midthickness.mat'%(parcels)
         mat_file = scipy.io.loadmat(pkg_resources.resource_stream(resource_package, resource_path))
